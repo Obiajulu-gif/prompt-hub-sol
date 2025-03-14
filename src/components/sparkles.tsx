@@ -54,14 +54,18 @@ export const SparklesCore = ({
 			speedY: number;
 
 			constructor() {
-				this.x = Math.random() * canvas.width;
-				this.y = Math.random() * canvas.height;
+				const canvas = canvasRef.current;
+				this.x = Math.random() * (canvas?.width ?? 1200);
+				this.y = Math.random() * (canvas?.height ?? 800);
 				this.size = Math.random() * (maxSize - minSize) + minSize;
 				this.speedX = Math.random() * 0.5 - 0.25;
 				this.speedY = Math.random() * 0.5 - 0.25;
 			}
 
 			update() {
+				const canvas = canvasRef.current;
+				if (!canvas) return;
+
 				this.x += this.speedX;
 				this.y += this.speedY;
 

@@ -75,3 +75,15 @@
   }
 }
 
+/* Customize Wallet Adapter Button */
+.wallet-adapter-button-trigger {
+  background-color: #6d28d9 !important;
+  color: white !important;
+  font-weight: bold;
+  border-radius: 8px;
+  padding: 8px 16px;
+}
+
+.wallet-adapter-button-trigger:hover {
+  background-color: #4c1d95 !important;
+}

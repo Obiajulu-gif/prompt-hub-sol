@@ -1,93 +1,92 @@
-"use client"
+"use client";
 
-import { Button } from "./ui/button"
-import { Input } from "./ui/input"
-import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet"
-import { Menu, Search, Wallet } from "lucide-react"
-import Link from "next/link"
-import Image from "next/image"
-import { useState } from "react"
+import { useWallet } from "@solana/wallet-adapter-react";
+import { WalletButton } from "@/components/solana/solana-provider"; // Import the wallet button
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
+import { Menu, Search, LogOut } from "lucide-react";
+import Link from "next/link";
+import Image from "next/image";
 
 export function Navigation() {
-  const [isConnected, setIsConnected] = useState(false)
+  const { publicKey, disconnect } = useWallet(); // Get wallet state & disconnect function
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-gray-800 bg-gray-950/95 backdrop-blur supports-[backdrop-filter]:bg-gray-950/60">
-      <div className="container flex h-16 items-center">
-        <div className="mr-4 hidden md:flex">
-          <Link href="/" className="mr-6 flex items-center space-x-2">
-            <Image
-              src="/images/logo.png"
-              alt="PromptHub Logo"
-              width={32}
-              height={32}
-              className="object-contain"
-            />
-            <span className="hidden font-bold sm:inline-block text-purple-400">PromptHub</span>
+    <header className="sticky top-0 z-50 w-full bg-gray-950/90 backdrop-blur-lg shadow-lg">
+      <div className="container mx-auto px-6 lg:px-10 flex h-20 items-center justify-between">
+        {/* Left Section: Logo & Navigation */}
+        <div className="flex items-center space-x-8">
+          {/* Logo */}
+          <Link href="/" className="flex items-center space-x-2">
+            <Image src="/images/logo.png" alt="PromptHub Logo" width={40} height={40} className="object-contain" />
+            <span className="hidden font-bold text-lg sm:inline-block text-purple-400">PromptHub</span>
           </Link>
-          <nav className="flex items-center space-x-6 text-sm font-medium">
-            <Link href="/browse" className="transition-colors hover:text-gray-300 text-white">
-              Browse
-            </Link>
-            <Link href="/sell" className="transition-colors hover:text-gray-300 text-white">
-              Sell
-            </Link>
-            <Link href="/governance" className="transition-colors hover:text-gray-300 text-white">
-              Governance
-            </Link>
-            <Link href="/profile" className="transition-colors hover:text-gray-300 text-white">
-              Profile
-            </Link>
+
+          {/* Desktop Navigation */}
+          <nav className="hidden lg:flex items-center space-x-8 text-sm font-medium text-gray-300">
+            <Link href="/browse" className="hover:text-white transition">Browse</Link>
+            <Link href="/sell" className="hover:text-white transition">Sell</Link>
+            <Link href="/governance" className="hover:text-white transition">Governance</Link>
+            <Link href="/profile" className="hover:text-white transition">Profile</Link>
           </nav>
         </div>
-        <Sheet>
-          <SheetTrigger asChild>
-            <Button
-              variant="ghost"
-              className="mr-2 px-0 text-base hover:bg-transparent focus-visible:bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 md:hidden"
-            >
-              <Menu className="h-6 w-6" />
-              <span className="sr-only">Toggle Menu</span>
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="left" className="pr-0 bg-gray-900 text-white">
-            <nav className="grid gap-6 px-2 py-6">
-              <Link href="/browse" className="hover:text-gray-300">
-                Browse
-              </Link>
-              <Link href="/sell" className="hover:text-gray-300">
-                Sell
-              </Link>
-              <Link href="/governance" className="hover:text-gray-300">
-                Governance
-              </Link>
-              <Link href="/profile" className="hover:text-gray-300">
-                Profile
-              </Link>
-            </nav>
-          </SheetContent>
-        </Sheet>
-        <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
-          <div className="w-full flex-1 md:w-auto md:flex-none">
-            <div className="relative">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-100" />
-              <Input
-                placeholder="Search prompts..."
-                className="pl-8 md:w-[300px] lg:w-[400px] bg-gray-400 border-purple-700"
-              />
-            </div>
+
+        {/* Right Section: Search, Mobile Menu & Wallet Button */}
+        <div className="flex items-center space-x-6">
+          {/* Search Bar (Hidden on Small Screens) */}
+          <div className="relative hidden md:block">
+            <Search className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+            <Input
+              placeholder="Search prompts..."
+              className="pl-10 pr-4 h-12 rounded-xl bg-gray-800 border border-gray-700 text-white focus:border-purple-500 focus:ring-2 focus:ring-purple-500 transition"
+            />
           </div>
-          <Button
-            variant="outline"
-            className="ml-auto hidden md:flex font-bold border-purple-900 text-purple-800"
-            onClick={() => setIsConnected(!isConnected)}
-          >
-            <Wallet className="mr-2 h-4 w-4" />
-            {isConnected ? "0x1234...5678" : "Connect Wallet"}
-          </Button>
+
+          {/* Mobile Menu (Shown Only on Small Screens) */}
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="ghost" className="lg:hidden text-gray-300 hover:text-white transition">
+                <Menu className="h-7 w-7" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="pr-0 bg-gray-900 text-white">
+              <nav className="grid gap-6 px-6 py-8 text-lg font-medium">
+                <Link href="/browse" className="hover:text-gray-300">Browse</Link>
+                <Link href="/sell" className="hover:text-gray-300">Sell</Link>
+                <Link href="/governance" className="hover:text-gray-300">Governance</Link>
+                <Link href="/profile" className="hover:text-gray-300">Profile</Link>
+              </nav>
+            </SheetContent>
+          </Sheet>
+
+          {/* Wallet Connect / Disconnect Button */}
+          <div className="ml-auto flex items-center space-x-4">
+            {publicKey ? (
+              <div className="flex items-center space-x-4">
+                {/* Wallet Address Display */}
+                <span className="bg-gray-800 text-purple-400 px-4 py-2 rounded-xl text-sm font-semibold border border-purple-600">
+                  {publicKey.toBase58().slice(0, 4)}...{publicKey.toBase58().slice(-4)}
+                </span>
+
+                {/* Disconnect Button */}
+                <Button
+                  variant="outline"
+                  className="border-red-500 text-red-500 hover:bg-red-600 hover:text-white transition"
+                  onClick={() => disconnect()}
+                >
+                  <LogOut className="mr-2 h-5 w-5" />
+                  Disconnect
+                </Button>
+              </div>
+            ) : (
+              <WalletButton className="bg-purple-700 hover:bg-purple-800 text-white px-5 py-3 rounded-xl text-lg font-semibold transition">
+                Connect Wallet
+              </WalletButton>
+            )}
+          </div>
         </div>
       </div>
     </header>
-  )
+  );
 }
-

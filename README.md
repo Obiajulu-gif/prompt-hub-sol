@@ -1,4 +1,4 @@
-# legacy-prompt-hub-sol
+prompt-hub-sol
 
 ## Getting Started
 
@@ -57,7 +57,7 @@ pnpm anchor keys sync
 
 ```shell
 pnpm anchor-build
-```
+```****************
 
 #### Start the test validator with the program deployed:
 
@@ -85,7 +85,7 @@ This is a React app that uses the Anchor generated client to interact with the S
 
 Start the web app
 
-```shell
+```**shell**
 pnpm dev
 ```
 

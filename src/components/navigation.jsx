@@ -24,7 +24,7 @@ export function Navigation() {
     if (connecting) {
       setIsConnecting(true);
     } else {
-      setTimeout(() => setIsConnecting(false), 1000); // Small delay for a smooth transition
+      setTimeout(() => setIsConnecting(false), 500); // Small delay for smooth transition
     }
   }, [connecting]);
 
@@ -89,7 +89,7 @@ export function Navigation() {
               </div>
             ) : (
               <Button
-                className="bg-purple-700 hover:bg-purple-800 text-white px-5 py-3 rounded-xl text-lg font-semibold transition flex items-center"
+                className="bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white px-6 py-3 rounded-xl text-lg font-semibold transition flex items-center shadow-lg animate-fade-in"
                 disabled={isConnecting} // Disable button while connecting
               >
                 {isConnecting ? (
@@ -97,7 +97,7 @@ export function Navigation() {
                     <Loader2 className="animate-spin h-5 w-5 mr-2" /> Connecting...
                   </>
                 ) : (
-                  <WalletButton />
+                  "Connect Wallet"
                 )}
               </Button>
             )}

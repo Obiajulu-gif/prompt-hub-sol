@@ -1,23 +1,28 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { WalletButton } from "@/components/solana/solana-provider"; // Import the wallet button
 import { Button } from "./ui/button";
-import { Input } from "./ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
-import { Menu, Search, LogOut } from "lucide-react";
+import { Menu, LogOut } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 
+// Dynamically load Wallet Button to prevent SSR issues
+const WalletButton = dynamic(
+  async () => (await import("@solana/wallet-adapter-react-ui")).WalletMultiButton,
+  { ssr: false }
+);
+
 export function Navigation() {
-  const { publicKey, disconnect } = useWallet(); // Get wallet state & disconnect function
+  const { publicKey, disconnect } = useWallet(); // Wallet connection state
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-gray-950/90 backdrop-blur-lg shadow-lg">
+    <header className="sticky top-0 z-50 w-full bg-gray-950/90 backdrop-blur-lg shadow-lg border-b border-gray-800">
       <div className="container mx-auto px-6 lg:px-10 flex h-20 items-center justify-between">
-        {/* Left Section: Logo & Navigation */}
+        
+        {/* Left Section: Logo & Desktop Navigation */}
         <div className="flex items-center space-x-8">
-          {/* Logo */}
           <Link href="/" className="flex items-center space-x-2">
             <Image src="/images/logo.png" alt="PromptHub Logo" width={40} height={40} className="object-contain" />
             <span className="hidden font-bold text-lg sm:inline-block text-purple-400">PromptHub</span>
@@ -32,18 +37,10 @@ export function Navigation() {
           </nav>
         </div>
 
-        {/* Right Section: Search, Mobile Menu & Wallet Button */}
+        {/* Right Section: Mobile Menu & Wallet Button */}
         <div className="flex items-center space-x-6">
-          {/* Search Bar (Hidden on Small Screens) */}
-          <div className="relative hidden md:block">
-            <Search className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-            <Input
-              placeholder="Search prompts..."
-              className="pl-10 pr-4 h-12 rounded-xl bg-gray-800 border border-gray-700 text-white focus:border-purple-500 focus:ring-2 focus:ring-purple-500 transition"
-            />
-          </div>
-
-          {/* Mobile Menu (Shown Only on Small Screens) */}
+          
+          {/* Mobile Menu */}
           <Sheet>
             <SheetTrigger asChild>
               <Button variant="ghost" className="lg:hidden text-gray-300 hover:text-white transition">

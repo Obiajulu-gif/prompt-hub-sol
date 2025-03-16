@@ -22,7 +22,7 @@ export const WalletButton = dynamic(
 );
 
 export function SolanaProvider({ children }: { children: ReactNode }) {
-  const endpoint = useMemo(() => "https://devnet.sonic.game", []);
+  const endpoint = useMemo(() => "https://api.testnet.sonic.game", []);
 
   const onError = useCallback((error: WalletError) => {
     console.error(error);

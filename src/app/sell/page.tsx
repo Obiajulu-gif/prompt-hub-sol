@@ -1,7 +1,7 @@
 "use client";
 
 import { useWallet } from "@solana/wallet-adapter-react";
-import { AnchorProvider, Program, web3, BN } from "@coral-xyz/anchor";
+import { AnchorProvider, Program, web3, BN, Wallet } from "@coral-xyz/anchor";
 import { Navigation } from "@/components/navigation";
 import { Footer } from "@/components/footer";
 import { Button } from "@/components/ui/button";
@@ -10,16 +10,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState, ChangeEvent, FormEvent } from "react";
-import { Upload, DollarSign, AlertCircle } from "lucide-react";
 import { useConnection } from "@solana/wallet-adapter-react";
-import idl from "../../../anchor/target/idl/prompthubsol.json"; // Import the IDL file
+import idl from "../../../anchor/target/idl/prompthubsol.json"; // Import IDL
 
+// ✅ Replace with your actual program ID
 const PROGRAM_ID = new web3.PublicKey("G1SfRwFsFTNFZC1RXxraZ3BPbJfwZduGd4thJnF9bpyd");
 
 export default function SellPage() {
     const { connection } = useConnection();
     const wallet = useWallet();
-    
+
     const [formData, setFormData] = useState({
         title: "",
         description: "",
@@ -60,27 +60,27 @@ export default function SellPage() {
         e.preventDefault();
         if (!validateForm()) return;
 
-        if (!wallet.publicKey) {
-            alert("Connect your wallet first.");
+        if (!wallet.connected || !wallet.publicKey || !wallet.signTransaction) {
+            alert("Please connect your wallet first.");
             return;
         }
 
         try {
             setIsSubmitting(true);
 
-            // Connect to Anchor Program
-            const provider = new AnchorProvider(connection, wallet, {
+            // ✅ Corrected wallet type issue
+            const provider = new AnchorProvider(connection, wallet as Wallet, {
                 preflightCommitment: "processed",
             });
             const program = new Program(idl as any, PROGRAM_ID, provider);
 
-            // Generate a PDA for the listing
+            // ✅ Generate a PDA for the listing
             const [listingPDA] = web3.PublicKey.findProgramAddressSync(
                 [Buffer.from("listing"), wallet.publicKey.toBuffer()],
                 PROGRAM_ID
             );
 
-            // Create Transaction
+            // ✅ Create Transaction
             const tx = await program.methods
                 .createListing(
                     formData.title,
@@ -99,8 +99,8 @@ export default function SellPage() {
             console.log("Transaction Signature:", tx);
             alert("Prompt listed successfully!");
         } catch (error) {
-            console.error("Error submitting listing:", error);
-            alert("Failed to list prompt.");
+            console.error("❌ Error submitting listing:", error);
+            alert("Failed to list prompt. Check console for details.");
         } finally {
             setIsSubmitting(false);
         }

@@ -12,8 +12,9 @@ prompthubsol = "5E4bXyfwYPGEN1HmWKBM2yFQsJqD4rqFb7Dciund8ZVW"
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "Localnet"
+cluster = "https://api.testnet.sonic.game"
 wallet = "~/.config/solana/id.json"
+
 
 [scripts]
 test = "../node_modules/.bin/jest --preset ts-jest"

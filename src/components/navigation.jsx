@@ -1,21 +1,32 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { useState, useEffect } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { Button } from "./ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
-import { Menu, LogOut } from "lucide-react";
+import { Menu, LogOut, Loader2 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 
-// Dynamically load Wallet Button to prevent SSR issues
+// ✅ Dynamically load WalletButton to prevent SSR issues
 const WalletButton = dynamic(
   async () => (await import("@solana/wallet-adapter-react-ui")).WalletMultiButton,
   { ssr: false }
 );
 
 export function Navigation() {
-  const { publicKey, disconnect } = useWallet(); // Wallet connection state
+  const { publicKey, disconnect, connecting } = useWallet(); // ✅ Added `connecting` state
+  const [isConnecting, setIsConnecting] = useState(false);
+
+  // ✅ Watch `connecting` state and update the UI accordingly
+  useEffect(() => {
+    if (connecting) {
+      setIsConnecting(true);
+    } else {
+      setTimeout(() => setIsConnecting(false), 1000); // Small delay for a smooth transition
+    }
+  }, [connecting]);
 
   return (
     <header className="sticky top-0 z-50 w-full bg-gray-950/90 backdrop-blur-lg shadow-lg border-b border-gray-800">
@@ -77,9 +88,18 @@ export function Navigation() {
                 </Button>
               </div>
             ) : (
-              <WalletButton className="bg-purple-700 hover:bg-purple-800 text-white px-5 py-3 rounded-xl text-lg font-semibold transition">
-                Connect Wallet
-              </WalletButton>
+              <Button
+                className="bg-purple-700 hover:bg-purple-800 text-white px-5 py-3 rounded-xl text-lg font-semibold transition flex items-center"
+                disabled={isConnecting} // Disable button while connecting
+              >
+                {isConnecting ? (
+                  <>
+                    <Loader2 className="animate-spin h-5 w-5 mr-2" /> Connecting...
+                  </>
+                ) : (
+                  <WalletButton />
+                )}
+              </Button>
             )}
           </div>
         </div>

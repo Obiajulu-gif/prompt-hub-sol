@@ -2,69 +2,145 @@
 
 use anchor_lang::prelude::*;
 
-declare_id!("5E4bXyfwYPGEN1HmWKBM2yFQsJqD4rqFb7Dciund8ZVW");
+declare_id!("Fe9igk7LXXkMC595krcFp3GR78wTFts5qMDzjTW83Jfh");
 
 #[program]
-pub mod prompthubsol {
+pub mod prompt_marketplace {
     use super::*;
 
-  pub fn close(_ctx: Context<ClosePrompthubsol>) -> Result<()> {
+   pub fn create_listing(
+    ctx: Context<CreateListing>,
+    title: String,
+    description: String,
+    price: u64,
+    category: String,
+    file_hash: String,
+) -> Result<()> {
+    let listing = &mut ctx.accounts.listing;
+    listing.owner = ctx.accounts.owner.key();
+    listing.title = title;
+    listing.description = description;
+    listing.price = price;
+    listing.category = category;
+    listing.file_hash = file_hash;
+    listing.sales = 0;
+    listing.revenue = 0;
+    listing.bump = ctx.bumps.listing; 
     Ok(())
-  }
+}
 
-  pub fn decrement(ctx: Context<Update>) -> Result<()> {
-    ctx.accounts.prompthubsol.count = ctx.accounts.prompthubsol.count.checked_sub(1).unwrap();
-    Ok(())
-  }
 
-  pub fn increment(ctx: Context<Update>) -> Result<()> {
-    ctx.accounts.prompthubsol.count = ctx.accounts.prompthubsol.count.checked_add(1).unwrap();
-    Ok(())
-  }
+    // Update an existing listing (only owner)
+    pub fn update_listing(
+        ctx: Context<UpdateListing>,
+        title: String,
+        description: String,
+        price: u64,
+        category: String,
+    ) -> Result<()> {
+        let listing = &mut ctx.accounts.listing;
+        listing.title = title;
+        listing.description = description;
+        listing.price = price;
+        listing.category = category;
+        Ok(())
+    }
 
-  pub fn initialize(_ctx: Context<InitializePrompthubsol>) -> Result<()> {
-    Ok(())
-  }
+    // Purchase a prompt (buyer sends SOL, owner receives SOL)
+    pub fn purchase_prompt(ctx: Context<PurchasePrompt>) -> Result<()> {
+        let listing = &mut ctx.accounts.listing;
+        let buyer = &ctx.accounts.buyer;
+        let owner = &ctx.accounts.owner;
+        let system_program = &ctx.accounts.system_program;
 
-  pub fn set(ctx: Context<Update>, value: u8) -> Result<()> {
-    ctx.accounts.prompthubsol.count = value.clone();
-    Ok(())
-  }
+        // Transfer SOL from buyer to owner
+        let ix = anchor_lang::solana_program::system_instruction::transfer(
+            &buyer.key(),
+            &owner.key(),
+            listing.price,
+        );
+        anchor_lang::solana_program::program::invoke(
+            &ix,
+            &[
+                buyer.to_account_info(),
+                owner.to_account_info(),
+                system_program.to_account_info(),
+            ],
+        )?;
+
+        // Update listing stats
+        listing.sales += 1;
+        listing.revenue += listing.price;
+        Ok(())
+    }
+
+    // Close a listing (owner only)
+    pub fn close_listing(_ctx: Context<CloseListing>) -> Result<()> {
+        Ok(())
+    }
 }
 
 #[derive(Accounts)]
-pub struct InitializePrompthubsol<'info> {
-  #[account(mut)]
-  pub payer: Signer<'info>,
+pub struct CreateListing<'info> {
+    #[account(
+        init,
+        payer = owner,
+        space = 8 + 32 + 4 + 100 + 4 + 500 + 8 + 4 + 100 + 4 + 100 + 8 + 8 + 1,
+        seeds = [b"listing", owner.key().as_ref()],
+        bump
+    )]
+    pub listing: Account<'info, PromptListing>,
 
-  #[account(
-  init,
-  space = 8 + Prompthubsol::INIT_SPACE,
-  payer = payer
-  )]
-  pub prompthubsol: Account<'info, Prompthubsol>,
-  pub system_program: Program<'info, System>,
-}
-#[derive(Accounts)]
-pub struct ClosePrompthubsol<'info> {
-  #[account(mut)]
-  pub payer: Signer<'info>,
+    #[account(mut)]
+    pub owner: Signer<'info>,
 
-  #[account(
-  mut,
-  close = payer, // close account and return lamports to payer
-  )]
-  pub prompthubsol: Account<'info, Prompthubsol>,
+    pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
-pub struct Update<'info> {
-  #[account(mut)]
-  pub prompthubsol: Account<'info, Prompthubsol>,
+pub struct UpdateListing<'info> {
+    #[account(mut, has_one = owner)]
+    pub listing: Account<'info, PromptListing>,
+
+    #[account(mut)]
+    pub owner: Signer<'info>,
+}
+
+#[derive(Accounts)]
+pub struct PurchasePrompt<'info> {
+    #[account(mut)]
+    pub listing: Account<'info, PromptListing>,
+
+    #[account(mut)]
+    pub buyer: Signer<'info>,
+
+    #[account(mut)]
+    pub owner: SystemAccount<'info>,
+
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct CloseListing<'info> {
+    #[account(mut, has_one = owner, close = user)]
+    pub listing: Account<'info, PromptListing>,
+
+    #[account(mut)]
+    pub owner: Signer<'info>,
+
+    #[account(mut)]
+    pub user: SystemAccount<'info>,
 }
 
 #[account]
-#[derive(InitSpace)]
-pub struct Prompthubsol {
-  count: u8,
+pub struct PromptListing {
+    pub owner: Pubkey, // 32 bytes
+    pub title: String, // Variable length
+    pub description: String, // Variable length
+    pub price: u64, // 8 bytes
+    pub category: String, // Variable length
+    pub file_hash: String, // Variable length (e.g., IPFS or Arweave hash)
+    pub sales: u64, // 8 bytes
+    pub revenue: u64, // 8 bytes
+    pub bump: u8, // 1 byte
 }

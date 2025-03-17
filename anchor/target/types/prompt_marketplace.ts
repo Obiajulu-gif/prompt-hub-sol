@@ -5,7 +5,7 @@
  * IDL can be found at `target/idl/prompt_marketplace.json`.
  */
 export type PromptMarketplace = {
-  "address": "Fe9igk7LXXkMC595krcFp3GR78wTFts5qMDzjTW83Jfh",
+  "address": "5E4bXyfwYPGEN1HmWKBM2yFQsJqD4rqFb7Dciund8ZVW",
   "metadata": {
     "name": "promptMarketplace",
     "version": "0.1.0",

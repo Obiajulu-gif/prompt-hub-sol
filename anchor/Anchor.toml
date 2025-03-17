@@ -6,7 +6,7 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-prompthubsol = "5E4bXyfwYPGEN1HmWKBM2yFQsJqD4rqFb7Dciund8ZVW"
+prompthubsol = "GjFKj3BcskW4zcDbjZpnBjxKPyDkeLVaKpBodWWykHKZ"
 
 [registry]
 url = "https://api.apr.dev"
@@ -14,7 +14,6 @@ url = "https://api.apr.dev"
 [provider]
 cluster = "https://api.testnet.sonic.game"
 wallet = "~/.config/solana/id.json"
-
 
 [scripts]
 test = "../node_modules/.bin/jest --preset ts-jest"

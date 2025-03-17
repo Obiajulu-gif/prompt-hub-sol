@@ -60,7 +60,7 @@ export default function ProfilePage() {
 														2 days ago
 													</p>
 												</div>
-												<Badge>0.08 ETH</Badge>
+												<Badge>0.08 SOL</Badge>
 											</div>
 											<div className="flex justify-between items-center py-2 border-b">
 												<div>
@@ -71,7 +71,7 @@ export default function ProfilePage() {
 														5 days ago
 													</p>
 												</div>
-												<Badge>0.1 ETH</Badge>
+												<Badge>0.1 SOL</Badge>
 											</div>
 										</div>
 									</CardContent>
@@ -122,7 +122,7 @@ export default function ProfilePage() {
 											<input
 												type="text"
 												className="w-full mt-1 px-3 py-2 border rounded-md"
-												defaultValue="John.eth"
+												defaultValue="John.sol"
 											/>
 										</div>
 										<div>

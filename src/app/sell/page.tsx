@@ -11,8 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState, ChangeEvent, FormEvent } from "react";
 import { useConnection } from "@solana/wallet-adapter-react";
-import idl from "../../../anchor/target/idl/prompthubsol.json"; // Import IDL
-
+import idl from "../../../anchor/target/idl/prompt_marketplace.json"; // Import IDL
 // ✅ Replace with your actual program ID
 const PROGRAM_ID = new web3.PublicKey("G1SfRwFsFTNFZC1RXxraZ3BPbJfwZduGd4thJnF9bpyd");
 

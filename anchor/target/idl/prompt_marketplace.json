@@ -1,20 +1,14 @@
-/**
- * Program IDL in camelCase format in order to be used in JS/TS.
- *
- * Note that this is only a type helper and is not the actual IDL. The original
- * IDL can be found at `target/idl/prompt_marketplace.json`.
- */
-export type PromptMarketplace = {
+{
   "address": "GjFKj3BcskW4zcDbjZpnBjxKPyDkeLVaKpBodWWykHKZ",
   "metadata": {
-    "name": "promptMarketplace",
+    "name": "prompt_marketplace",
     "version": "0.1.0",
     "spec": "0.1.0",
     "description": "Created with Anchor"
   },
   "instructions": [
     {
-      "name": "closeListing",
+      "name": "close_listing",
       "discriminator": [
         33,
         15,
@@ -46,7 +40,7 @@ export type PromptMarketplace = {
       "args": []
     },
     {
-      "name": "createListing",
+      "name": "create_listing",
       "discriminator": [
         18,
         168,
@@ -88,7 +82,7 @@ export type PromptMarketplace = {
           "signer": true
         },
         {
-          "name": "systemProgram",
+          "name": "system_program",
           "address": "11111111111111111111111111111111"
         }
       ],
@@ -110,13 +104,13 @@ export type PromptMarketplace = {
           "type": "string"
         },
         {
-          "name": "fileHash",
+          "name": "file_hash",
           "type": "string"
         }
       ]
     },
     {
-      "name": "purchasePrompt",
+      "name": "purchase_prompt",
       "discriminator": [
         15,
         39,
@@ -142,14 +136,14 @@ export type PromptMarketplace = {
           "writable": true
         },
         {
-          "name": "systemProgram",
+          "name": "system_program",
           "address": "11111111111111111111111111111111"
         }
       ],
       "args": []
     },
     {
-      "name": "updateListing",
+      "name": "update_listing",
       "discriminator": [
         192,
         174,
@@ -196,7 +190,7 @@ export type PromptMarketplace = {
   ],
   "accounts": [
     {
-      "name": "promptListing",
+      "name": "PromptListing",
       "discriminator": [
         128,
         204,
@@ -211,7 +205,7 @@ export type PromptMarketplace = {
   ],
   "types": [
     {
-      "name": "promptListing",
+      "name": "PromptListing",
       "type": {
         "kind": "struct",
         "fields": [
@@ -236,7 +230,7 @@ export type PromptMarketplace = {
             "type": "string"
           },
           {
-            "name": "fileHash",
+            "name": "file_hash",
             "type": "string"
           },
           {
@@ -255,4 +249,4 @@ export type PromptMarketplace = {
       }
     }
   ]
-};
+}

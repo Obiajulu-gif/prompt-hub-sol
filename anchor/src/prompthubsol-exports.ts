@@ -12,7 +12,13 @@ export const PROMPTHUBSOL_PROGRAM_ID = new PublicKey(PrompthubsolIDL.address)
 
 // This is a helper function to get the Prompthubsol Anchor program.
 export function getPrompthubsolProgram(provider: AnchorProvider, address?: PublicKey) {
-  return new Program({ ...PrompthubsolIDL, address: address ? address.toBase58() : PrompthubsolIDL.address } as Prompthubsol, provider)
+  return new Program(
+		{
+			...PrompthubsolIDL,
+			address: address ? address.toBase58() : PrompthubsolIDL.address,
+		} as PromptMarketplace,
+		provider
+	);
 }
 
 // This is a helper function to get the program ID for the Prompthubsol program depending on the cluster.

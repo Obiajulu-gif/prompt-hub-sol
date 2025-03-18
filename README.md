@@ -1,96 +1,264 @@
-prompt-hub-sol
+# **Prompt Hub** 🚀  
 
-## Getting Started
+Welcome to **Prompt Hub**, a **Sonic-powered** Solana application for discovering, creating, and improving AI-generated prompts. This project consists of a **Next.js frontend** and a **FastAPI backend**, leveraging **Sonic (Solana's parallelized execution runtime)** for fast, scalable transactions on the **Solana blockchain**.  
 
-### Prerequisites
+---
 
-- Node v18.18.0 or higher
+## **Table of Contents**  
+- [Project Overview](#project-overview)  
+- [Features](#features)  
+- [Tech Stack](#tech-stack)  
+- [Solana & Sonic Integration](#solana--sonic-integration)  
+- [Folder Structure](#folder-structure)  
+- [Installation & Setup](#installation--setup)  
+- [Environment Variables](#environment-variables)  
+- [Running the Project](#running-the-project)  
+- [Deployment](#deployment)  
+- [Contributing](#contributing)  
+- [License](#license)  
 
-- Rust v1.77.2 or higher
-- Anchor CLI 0.30.1 or higher
-- Solana CLI 1.18.17 or higher
+---
 
-### Installation
+## **Project Overview**  
+Prompt Hub is designed to help users:  
+✅ Browse AI-generated prompts  
+✅ Improve and optimize prompts  
+✅ Chat with an AI assistant  
+✅ Manage profiles and saved prompts  
+✅ Store and verify AI-generated content using **Solana** smart contracts  
+✅ Execute transactions **fast** with **Sonic**  
 
-#### Clone the repo
+It is a **full-stack web application** leveraging:  
+- **Next.js** for the frontend  
+- **FastAPI** for the backend  
+- **PostgreSQL** as the database  
+- **Solana & Sonic** for blockchain-based storage & verification  
+- **Tailwind CSS** for styling  
+- **TypeScript** for type safety  
 
-```shell
-git clone <repo-url>
-cd <repo-name>
+---
+
+## **Features**  
+### 🔹 **Frontend (Next.js)**
+- Server-side rendering (SSR) & static site generation (SSG)  
+- API routes for communication with the backend  
+- UI components built with **ShadCN** and **Tailwind CSS**  
+
+### 🔹 **Backend (FastAPI)**
+- REST API endpoints for handling requests  
+- User authentication & security  
+- Prompt storage & retrieval  
+
+### 🔹 **Solana & Sonic Integration**
+- Smart contract execution on **Solana** for immutable prompt storage  
+- **Sonic-powered** fast transactions for user interactions  
+- **Anchor framework** for Solana program development  
+- Wallet integration using **Solana Wallet Adapter**  
+
+---
+
+## **Tech Stack**  
+| Stack        | Technology |
+|-------------|-----------|
+| Frontend    | Next.js (TypeScript) |
+| Backend     | FastAPI (Python) |
+| Database    | PostgreSQL |
+| Blockchain  | Solana + Sonic |
+| UI Library  | Tailwind CSS, ShadCN |
+| State Mgmt  | React Hooks, Context API |
+| API         | REST APIs |
+| Auth        | JWT-based authentication + Solana Wallet Adapter |
+| Smart Contracts | Solana Program Library (SPL), Anchor |
+| Deployment  | Vercel (Frontend), Render (Backend) |
+
+---
+
+## **Solana & Sonic Integration**  
+### **Why Solana?**  
+- **Low-cost, high-speed transactions** (ideal for AI-powered prompt storage)  
+- **On-chain verification** of prompt authenticity  
+- **NFT minting** for exclusive AI-generated content  
+
+### **Why Sonic?**  
+- **Optimized parallel execution** → Faster transactions  
+- **Better scalability** for AI applications  
+- **Minimal latency** for user interactions  
+
+### **How We Use Solana in Prompt Hub**
+- **Store prompts on Solana**: Every prompt submitted by users is stored on-chain for immutability.  
+- **Sonic-powered transactions**: All transactions (prompt uploads, edits, and verifications) are executed via Sonic for speed.  
+- **Wallet authentication**: Users can sign in with their Solana wallets to interact with prompts.  
+
+#### **Solana Program Example (Rust)**
+```rust
+use anchor_lang::prelude::*;
+
+declare_id!("YourProgramID");
+
+#[program]
+mod prompt_hub {
+    use super::*;
+
+    pub fn store_prompt(ctx: Context<StorePrompt>, content: String) -> Result<()> {
+        let prompt = &mut ctx.accounts.prompt;
+        prompt.creator = *ctx.accounts.user.key;
+        prompt.content = content;
+        Ok(())
+    }
+}
+
+#[account]
+pub struct Prompt {
+    pub creator: Pubkey,
+    pub content: String,
+}
 ```
 
-#### Install Dependencies
+---
 
-```shell
-pnpm install
+## **Folder Structure**  
+```
+prompt-hub/
+│── api/                     # Backend (FastAPI)
+│   ├── main.py              # FastAPI entry point
+│   ├── models.py            # Database models
+│   ├── routers/             # API routes
+│   ├── solana.py            # Solana transaction logic
+│   ├── security.py          # Authentication logic
+│   └── config.py            # Environment configuration
+│
+│── app/                     # Frontend (Next.js)
+│   ├── api/                 # API route handlers
+│   ├── browse/              # Browse AI-generated prompts
+│   ├── chat/                # Chat page
+│   ├── profile/             # User profile
+│   ├── solana/              # Solana wallet connection
+│   ├── layout.tsx           # App layout
+│   ├── page.tsx             # Main entry point
+│
+│── smart-contracts/         # Solana programs (Rust)
+│   ├── src/                 # Anchor framework contracts
+│   ├── Cargo.toml           # Rust dependencies
+│
+│── .env                     # Environment variables
+│── package.json             # Dependencies
+│── requirements.txt         # Backend dependencies
+│── render.yaml              # Deployment config for Render
+│── tailwind.config.js       # Tailwind configuration
 ```
 
-#### Start the web app
+---
 
-```
-pnpm dev
-```
+## **Installation & Setup**  
+### **Prerequisites**  
+- **Node.js** (v18+)  
+- **Python** (v3.10+)  
+- **PostgreSQL** (for database)  
+- **Solana CLI** (for smart contract deployment)  
+- **Anchor framework**  
 
-## Apps
-
-### anchor
-
-This is a Solana program written in Rust using the Anchor framework.
-
-#### Commands
-
-You can use any normal anchor commands. Either move to the `anchor` directory and run the `anchor` command or prefix the
-command with `pnpm`, eg: `pnpm anchor`.
-
-#### Sync the program id:
-
-Running this command will create a new keypair in the `anchor/target/deploy` directory and save the address to the
-Anchor config file and update the `declare_id!` macro in the `./src/lib.rs` file of the program.
-
-You will manually need to update the constant in `anchor/lib/counter-exports.ts` to match the new program id.
-
-```shell
-pnpm anchor keys sync
+### **1. Clone the Repository**  
+```sh
+git clone https://github.com/your-username/prompt-hub.git
+cd prompt-hub
 ```
 
-#### Build the program:
-
-```shell
-pnpm anchor-build
-```****************
-
-#### Start the test validator with the program deployed:
-
-```shell
-pnpm anchor-localnet
+### **2. Install Dependencies**  
+#### **Frontend**  
+```sh
+cd app
+npm install
+```
+#### **Backend**  
+```sh
+cd api
+pip install -r requirements.txt
 ```
 
-#### Run the tests
-
-```shell
-pnpm anchor-test
+### **3. Set Up Environment Variables**  
+#### **Frontend (`app/.env.local`)**  
+```
+NEXT_PUBLIC_API_URL=http://localhost:8000
+NEXT_PUBLIC_SOLANA_RPC=https://api.devnet.solana.com
+NEXTAUTH_SECRET=your_secret_key
 ```
 
-#### Deploy to Devnet
-
-```shell
-pnpm anchor deploy --provider.cluster devnet
+#### **Backend (`api/.env`)**  
+```
+DATABASE_URL=postgresql://user:password@localhost:5432/prompt_hub
+SECRET_KEY=your_secret_key
+ALGORITHM=HS256
+SOLANA_RPC_URL=https://api.devnet.solana.com
 ```
 
-### web
+---
 
-This is a React app that uses the Anchor generated client to interact with the Solana program.
-
-#### Commands
-
-Start the web app
-
-```**shell**
-pnpm dev
+## **Running the Project**  
+### **Start the Backend (FastAPI)**  
+```sh
+cd api
+uvicorn main:app --reload
 ```
 
-Build the web app
-
-```shell
-pnpm build
+### **Start the Frontend (Next.js)**  
+```sh
+cd app
+npm run dev
 ```
+Open [http://localhost:3000](http://localhost:3000) in your browser.  
+
+### **Deploy Solana Smart Contract**  
+```sh
+cd smart-contracts
+anchor build
+solana program deploy target/deploy/prompt_hub.so
+```
+
+---
+
+## **Deployment**  
+### **Frontend (Vercel)**  
+```sh
+vercel deploy
+```
+
+### **Backend (Render)**  
+1. Create a **Render.com** account  
+2. Set up a **new web service**  
+3. Link the repository and configure the `.env` variables  
+4. Deploy!  
+
+### **Solana Program (Mainnet-beta)**  
+```sh
+solana program deploy --network mainnet-beta target/deploy/prompt_hub.so
+```
+
+---
+
+## **Contributing**  
+We welcome contributions! Follow these steps:  
+1. **Fork the repository**  
+2. **Create a feature branch**:  
+   ```sh
+   git checkout -b feature-name
+   ```
+3. **Make changes and commit**:  
+   ```sh
+   git commit -m "Added a new feature"
+   ```
+4. **Push to GitHub**:  
+   ```sh
+   git push origin feature-name
+   ```
+5. **Create a pull request** (PR)  
+
+---
+
+## **License**  
+📜 **MIT License**  
+This project is open-source and free to use.  
+
+---
+
+### **🚀 Built for the Future – AI, Solana, and Sonic!**  
+For any questions, feel free to open an issue or reach out. 🚀

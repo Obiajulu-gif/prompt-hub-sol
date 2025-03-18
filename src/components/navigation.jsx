@@ -5,7 +5,16 @@ import { useState, useEffect } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { Button } from "./ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
-import { Menu, LogOut, Loader2 } from "lucide-react";
+import {
+  Menu,
+  LogOut,
+  Loader2,
+  Search,
+  ShoppingCart,
+  Settings,
+  User,
+  MessageCircle,
+} from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 
@@ -31,7 +40,6 @@ export function Navigation() {
   return (
     <header className="sticky top-0 z-50 w-full bg-gray-950/90 backdrop-blur-lg shadow-lg border-b border-gray-800">
       <div className="container mx-auto px-6 lg:px-10 flex h-20 items-center justify-between">
-        
         {/* Left Section: Logo & Desktop Navigation */}
         <div className="flex items-center space-x-8">
           <Link href="/" className="flex items-center space-x-2">
@@ -41,16 +49,26 @@ export function Navigation() {
 
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center space-x-8 text-sm font-medium text-gray-300">
-            <Link href="/browse" className="hover:text-white transition">Browse</Link>
-            <Link href="/sell" className="hover:text-white transition">Sell</Link>
-            <Link href="/governance" className="hover:text-white transition">Governance</Link>
-            <Link href="/profile" className="hover:text-white transition">Profile</Link>
+            <Link href="/browse" className="flex items-center hover:text-white transition">
+              <Search className="w-4 h-4 mr-1" /> Browse
+            </Link>
+            <Link href="/sell" className="flex items-center hover:text-white transition">
+              <ShoppingCart className="w-4 h-4 mr-1" /> Sell
+            </Link>
+            <Link href="/governance" className="flex items-center hover:text-white transition">
+              <Settings className="w-4 h-4 mr-1" /> Governance
+            </Link>
+            <Link href="/profile" className="flex items-center hover:text-white transition">
+              <User className="w-4 h-4 mr-1" /> Profile
+            </Link>
+            <Link href="/chat" className="flex items-center hover:text-white transition">
+              <MessageCircle className="w-4 h-4 mr-1" /> Chat
+            </Link>
           </nav>
         </div>
 
         {/* Right Section: Mobile Menu & Wallet Button */}
         <div className="flex items-center space-x-6">
-          
           {/* Mobile Menu */}
           <Sheet>
             <SheetTrigger asChild>
@@ -60,10 +78,18 @@ export function Navigation() {
             </SheetTrigger>
             <SheetContent side="left" className="pr-0 bg-gray-900 text-white">
               <nav className="grid gap-6 px-6 py-8 text-lg font-medium">
-                <Link href="/browse" className="hover:text-gray-300">Browse</Link>
-                <Link href="/sell" className="hover:text-gray-300">Sell</Link>
-                <Link href="/governance" className="hover:text-gray-300">Governance</Link>
-                <Link href="/profile" className="hover:text-gray-300">Profile</Link>
+                <Link href="/browse" className="flex items-center hover:text-gray-300">
+                  <Search className="w-5 h-5 mr-2" /> Browse
+                </Link>
+                <Link href="/sell" className="flex items-center hover:text-gray-300">
+                  <ShoppingCart className="w-5 h-5 mr-2" /> Sell
+                </Link>
+                <Link href="/governance" className="flex items-center hover:text-gray-300">
+                  <Settings className="w-5 h-5 mr-2" /> Governance
+                </Link>
+                <Link href="/profile" className="flex items-center hover:text-gray-300">
+                  <User className="w-5 h-5 mr-2" /> Profile
+                </Link>
               </nav>
             </SheetContent>
           </Sheet>

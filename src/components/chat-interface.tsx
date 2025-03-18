@@ -167,34 +167,41 @@ export function ChatInterface() {
   }
 
   return (
-    <div className="flex w-full h-screen bg-white">
+    <div className="flex w-full h-screen bg-gradient-to-r from-purple-400 to-blue-500 overflow-hidden">
       {/* Sidebar */}
-      <Sidebar isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
+      <Sidebar
+        isOpen={isMobileMenuOpen}
+        onClose={() => setIsMobileMenuOpen(false)}
+        onToggleMobileMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+      />
 
       {/* Main Chat Area */}
-      <ChatArea
-        conversation={conversation}
-        isTyping={isTyping}
-        customerName={customerName}
-        onSendMessage={handleSendMessage}
-        onImprovePrompt={handleImprovePrompt}
-        onReaction={handleReaction}
-        onSaveConversation={handleSaveConversation}
-        onCloseConversation={handleCloseConversation}
-        inputValue={inputValue}
-        setInputValue={setInputValue}
-        selectedModel={selectedModel}
-        setSelectedModel={setSelectedModel}
-      />
+      <div className="flex flex-1 flex-col md:flex-row h-full">
+        <ChatArea
+          conversation={conversation}
+          isTyping={isTyping}
+          customerName={customerName}
+          onSendMessage={handleSendMessage}
+          onImprovePrompt={handleImprovePrompt}
+          onReaction={handleReaction}
+          onSaveConversation={handleSaveConversation}
+          onCloseConversation={handleCloseConversation}
+          inputValue={inputValue}
+          setInputValue={setInputValue}
+          selectedModel={selectedModel}
+          setSelectedModel={setSelectedModel}
+          onToggleDetails={() => setIsDetailsOpen(!isDetailsOpen)}
+        />
 
-      {/* Conversation Details */}
-      <ConversationDetails
-        isOpen={isDetailsOpen}
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-        customerName={customerName}
-        onClose={() => setIsDetailsOpen(false)}
-      />
+        {/* Conversation Details */}
+        <ConversationDetails
+          isOpen={isDetailsOpen}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          customerName={customerName}
+          onClose={() => setIsDetailsOpen(false)}
+        />
+      </div>
     </div>
   )
 }

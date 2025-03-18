@@ -1,7 +1,6 @@
 import './globals.css'
 import { ClusterProvider } from '@/components/cluster/cluster-data-access'
 import { SolanaProvider } from '@/components/solana/solana-provider'
-import { UiLayout } from '@/components/ui/ui-layout'
 import { ReactQueryProvider } from './react-query-provider'
 import type { Metadata } from "next";
 import "./globals.css";
@@ -29,24 +28,26 @@ export const metadata: Metadata = {
 };
 
 
-const links: { label: string; path: string }[] = [
-  { label: 'Account', path: '/account' },
-  { label: 'Clusters', path: '/clusters' },
-  { label: 'Prompthubsol Program', path: '/prompthubsol' },
-]
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <html lang="en">
-      <body>
-        <ReactQueryProvider>
-          <ClusterProvider>
-            <SolanaProvider>
-              {children}
-            </SolanaProvider>
-          </ClusterProvider>
-        </ReactQueryProvider>
-      </body>
-    </html>
-  )
+
+export default function RootLayout({
+	children,
+}: {
+	children: React.ReactNode;
+}) {
+	return (
+		<html lang="en">
+			<body>
+				<ReactQueryProvider>
+					<ClusterProvider>
+						<SolanaProvider>
+							<div>{children}</div>
+						</SolanaProvider>
+					</ClusterProvider>
+				</ReactQueryProvider>
+			</body>
+		</html>
+	);
 }
+
+

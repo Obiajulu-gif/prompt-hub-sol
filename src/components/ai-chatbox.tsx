@@ -187,14 +187,14 @@ export function AiChatButton() {
         className="fixed animate-bounce bottom-6 right-6 rounded-full w-20 h-20 p-0 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 shadow-lg z-50 transition-transform hover:scale-110"
         aria-label="Open chat"
       >
-        <Bot size={80} className="text-white" />
+        <Bot size={40} className="text-white" />
       </Button>
 
       {/* Chat Modal */}
       {isOpen && (
         <div
           ref={chatRef}
-          className="fixed bottom-[calc(5rem+1.5rem)] right-6 bg-white dark:bg-gray-900 p-6 rounded-xl border border-border w-[520px] h-[600px] shadow-xl z-50 flex flex-col bg-gradient-to-r from-purple-400/20 to-blue-400/20 backdrop-blur-sm text-black"
+          className="fixed bottom-[calc(5rem+1.2rem)] right-6 bg-white dark:bg-gray-900 p-6 rounded-xl border border-border w-[520px] h-[550px] shadow-xl z-50 flex flex-col bg-gradient-to-r from-purple-400/20 to-blue-400/20 backdrop-blur-sm text-black"
         >
           {/* Header */}
           <div className="flex flex-col space-y-2 pb-4 border-b border-gray-200 dark:border-gray-700">

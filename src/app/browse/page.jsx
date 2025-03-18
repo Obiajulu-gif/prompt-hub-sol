@@ -49,7 +49,7 @@ export default function BrowsePage() {
 	};
 
 	return (
-		<div className="min-h-screen bg-gray-950 bg-gradient-to-r from-purple-400 to-blue-500 flex flex-col">
+		<div className="relative min-h-screen bg-gray-950 bg-gradient-to-r from-purple-400 to-blue-500 flex flex-col">
 			<Navigation />
 			<main className="flex-1 container py-8">
 				<div className="flex flex-col md:flex-row gap-8">

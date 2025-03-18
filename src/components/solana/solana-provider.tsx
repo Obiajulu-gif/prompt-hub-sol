@@ -32,7 +32,6 @@ export function SolanaProvider({ children }: { children: ReactNode }) {
     <ConnectionProvider endpoint={endpoint}>
       <WalletProvider wallets={[new PhantomWalletAdapter()]} onError={onError} autoConnect>
         <WalletModalProvider>{children}</WalletModalProvider>
-        {children}
       </WalletProvider>
     </ConnectionProvider>
   );

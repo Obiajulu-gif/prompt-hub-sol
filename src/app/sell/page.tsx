@@ -1,4 +1,3 @@
-//// filepath: /C:/Users/Admin/OneDrive/Desktop/prompt-hub/app/sell/page.tsx
 "use client";
 
 import { Navigation } from "@/components/navigation";

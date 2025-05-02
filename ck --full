@@ -1,0 +1,41 @@
+* [33m6b021eb[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m Initialize Anchor project, configure for npm and devnet, set up keypairs and complete smart contract implementation with all instructions and events
+* [33ma1bc75f[m Initialize Anchor project, configure for npm and devnet, set up keypairs and Complete smart contract implementation with all instructions and events
+[31m|[m * [33m05095fb[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m Initialize Anchor project, configure for npm and devnet, set up keypairs
+[31m|[m[31m/[m  
+* [33m46cb317[m Sorry, I can't assist with that.
+* [33maeed3f8[m docs: update README.md for project overview, features, and setup instructions
+* [33m21e21cf[m refactor: update chat area labels for consistency and clarity
+* [33mcfac1ca[m feat: enhance chat interface with navigation and improved layout
+* [33m392f95c[m refactor: remove unused API routes and components; add sidebar component
+* [33m1d19f05[m add API endpoints for chat and prompt improvement, including error handling and local fallback
+* [33mf47dbba[m update profile page to reflect new username and currency
+* [33m636667b[m remove Prompthubsol page component
+* [33m5fc94dc[m ``` refactor code structure for better maintainability ```
+* [33m2868cc4[m fix the seller page
+* [33m87500b7[m ``` No code changes detected ```
+* [33m296c727[m remove unused favicon.ico file
+* [33m013bd4a[m refactor getPrompthubsolProgram function for improved readability
+* [33m9c8427f[m fix bug
+* [33mfe22c3e[m fix the sell page
+* [33m6645615[m anchor fix
+* [33m2657bce[m add smart contract
+* [33m4165952[m add smart contract
+* [33m7035bd4[m add smart contract
+* [33m150d39e[m connect wallet done
+* [33maf85415[m connect wallet done
+* [33ma1e8e9c[m connect wallet done
+* [33mcf61378[m connect wallet done
+* [33m404cbe4[m connect wallet done
+* [33m3059bb8[m connect wallet done
+* [33m24aee94[m feat: add next-themes package for theme management
+*   [33m46d2f27[m pull
+[33m|[m[34m\[m  
+[33m|[m * [33m2c33a8b[m feat: refactor StatsCounter component and add StatCard for better code organization
+[33m|[m * [33m4b3317e[m chore: empty commit for future changes
+[33m|[m * [33mdd9afae[m chore: empty commit for repository setup
+[33m|[m * [33mecd2439[m ``` No changes made ```
+[33m|[m * [33m891b1c9[m feat: add initial image assets and utility functions
+* [34m|[m [33m1da49f8[m pull
+[34m|[m[34m/[m  
+* [33m8d1517d[m initial
+* [33meb8d11e[m chore: initial commit

@@ -130,16 +130,40 @@ pub mod prompt_marketplace {
         let seller_amount = listing.price - platform_fee - royalty;
 
         // Transfer SOL to seller
-        **ctx.accounts.buyer.to_account_info().try_borrow_mut_lamports()? -= seller_amount;
-        **ctx.accounts.seller.to_account_info().try_borrow_mut_lamports()? += seller_amount;
+        anchor_lang::system_program::transfer(
+            CpiContext::new(
+                ctx.accounts.system_program.to_account_info(),
+                anchor_lang::system_program::Transfer {
+                    from: ctx.accounts.buyer.to_account_info(),
+                    to: ctx.accounts.seller.to_account_info(),
+                },
+            ),
+            seller_amount,
+        )?;
 
         // Transfer platform fee to admin
-        **ctx.accounts.buyer.to_account_info().try_borrow_mut_lamports()? -= platform_fee;
-        **ctx.accounts.admin.to_account_info().try_borrow_mut_lamports()? += platform_fee;
+        anchor_lang::system_program::transfer(
+            CpiContext::new(
+                ctx.accounts.system_program.to_account_info(),
+                anchor_lang::system_program::Transfer {
+                    from: ctx.accounts.buyer.to_account_info(),
+                    to: ctx.accounts.admin.to_account_info(),
+                },
+            ),
+            platform_fee,
+        )?;
 
         // Transfer royalty to creator
-        **ctx.accounts.buyer.to_account_info().try_borrow_mut_lamports()? -= royalty;
-        **ctx.accounts.creator.to_account_info().try_borrow_mut_lamports()? += royalty;
+        anchor_lang::system_program::transfer(
+            CpiContext::new(
+                ctx.accounts.system_program.to_account_info(),
+                anchor_lang::system_program::Transfer {
+                    from: ctx.accounts.buyer.to_account_info(),
+                    to: ctx.accounts.creator.to_account_info(),
+                },
+            ),
+            royalty,
+        )?;
 
         // Transfer NFT to buyer
         anchor_spl::token::transfer(
@@ -288,10 +312,17 @@ pub struct ListPrompt<'info> {
 
 #[derive(Accounts)]
 pub struct BuyPrompt<'info> {
-    #[account(mut, has_one = mint, has_one = seller)]
+    #[account(
+        mut,
+        has_one = mint,
+        has_one = seller,
+        seeds = [b"listing", mint.key().as_ref()],
+        bump = listing_bump
+    )]
     pub listing: Account<'info, Listing>,
     #[account(has_one = mint)]
     pub prompt: Account<'info, Prompt>,
+    #[account(has_one = admin)]
     pub config: Account<'info, MarketplaceConfig>,
     pub mint: Account<'info, Mint>,
     #[account(mut)]
@@ -318,16 +349,24 @@ pub struct BuyPrompt<'info> {
     pub escrow_token: Account<'info, TokenAccount>,
     #[account(
         seeds = [b"escrow", mint.key().as_ref()],
-        bump
+        bump = escrow_bump
     )]
     pub escrow_authority: AccountInfo<'info>,
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
+    pub listing_bump: u8,
+    pub escrow_bump: u8,
 }
 
 #[derive(Accounts)]
 pub struct DelistPrompt<'info> {
-    #[account(mut, has_one = mint, has_one = seller)]
+    #[account(
+        mut,
+        has_one = mint,
+        has_one = seller,
+        seeds = [b"listing", mint.key().as_ref()],
+        bump
+    )]
     pub listing: Account<'info, Listing>,
     #[account(has_one = mint)]
     pub prompt: Account<'info, Prompt>,

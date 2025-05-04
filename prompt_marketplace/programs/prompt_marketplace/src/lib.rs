@@ -264,10 +264,12 @@ pub struct CreatePrompt<'info> {
     pub creator_token: Account<'info, TokenAccount>,
     #[account(mut)]
     pub creator: Signer<'info>,
+    /// CHECK: The metadata account is created and validated by the Metaplex metadata program using its PDA.
     #[account(mut)]
     pub metadata: UncheckedAccount<'info>,
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
+    /// CHECK: This is the Metaplex Token Metadata program, validated by its known program ID.
     pub metadata_program: UncheckedAccount<'info>,
     pub rent: Sysvar<'info, Rent>,
 }
@@ -301,6 +303,7 @@ pub struct ListPrompt<'info> {
         token::token_program = token_program
     )]
     pub escrow_token: Account<'info, TokenAccount>,
+    /// CHECK: This is a PDA-derived authority account validated by seeds [b"escrow", mint.key().as_ref()] and bump.
     #[account(
         seeds = [b"escrow", mint.key().as_ref()],
         bump
@@ -349,6 +352,7 @@ pub struct BuyPrompt<'info> {
         token::authority = escrow_authority
     )]
     pub escrow_token: Account<'info, TokenAccount>,
+    /// CHECK: This is a PDA-derived authority account validated by seeds [b"escrow", mint.key().as_ref()] and bump.
     #[account(
         seeds = [b"escrow", mint.key().as_ref()],
         bump
@@ -385,6 +389,7 @@ pub struct DelistPrompt<'info> {
         token::authority = escrow_authority
     )]
     pub escrow_token: Account<'info, TokenAccount>,
+    /// CHECK: This is a PDA-derived authority account validated by seeds [b"escrow", mint.key().as_ref()] and bump.
     #[account(
         seeds = [b"escrow", mint.key().as_ref()],
         bump

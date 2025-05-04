@@ -5,7 +5,7 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::{Mint, Token, TokenAccount};
 use mpl_token_metadata::instructions::CreateMetadataAccountV3CpiBuilder;
 
-declare_id!("9Dr9bdWnwiLjy5UswMsPEdrNbeaXHaBcE2qQo8Jau4Qo");
+declare_id!("EJtTm2xTWQsDf5FXYpsKACCwTH5kanK4WpiaS5Uook3s");
 
 #[program]
 pub mod prompt_marketplace {
@@ -16,7 +16,7 @@ pub mod prompt_marketplace {
         config.admin = ctx.accounts.admin.key();
         config.fee_bps = fee_bps;
         config.bump = ctx.bumps.config;
-        require!(fee_bps <= 500, ErrorCode::InvalidFee); // Max 5%
+        require!(fee_bps <= 1000, ErrorCode::InvalidFee); // Max 10%
         Ok(())
     }
 
@@ -317,10 +317,13 @@ pub struct BuyPrompt<'info> {
         has_one = mint,
         has_one = seller,
         seeds = [b"listing", mint.key().as_ref()],
-        bump = listing_bump
+        bump
     )]
     pub listing: Account<'info, Listing>,
-    #[account(has_one = mint)]
+    #[account(
+        has_one = mint,
+        has_one = creator
+    )]
     pub prompt: Account<'info, Prompt>,
     #[account(has_one = admin)]
     pub config: Account<'info, MarketplaceConfig>,
@@ -331,7 +334,6 @@ pub struct BuyPrompt<'info> {
     pub seller: SystemAccount<'info>,
     #[account(mut)]
     pub admin: SystemAccount<'info>,
-    #[account(has_one = creator)]
     pub creator: SystemAccount<'info>,
     #[account(
         init_if_needed,
@@ -349,13 +351,11 @@ pub struct BuyPrompt<'info> {
     pub escrow_token: Account<'info, TokenAccount>,
     #[account(
         seeds = [b"escrow", mint.key().as_ref()],
-        bump = escrow_bump
+        bump
     )]
     pub escrow_authority: AccountInfo<'info>,
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
-    pub listing_bump: u8,
-    pub escrow_bump: u8,
 }
 
 #[derive(Accounts)]

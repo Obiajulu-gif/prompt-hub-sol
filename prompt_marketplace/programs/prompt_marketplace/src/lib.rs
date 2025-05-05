@@ -5,7 +5,7 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::{Mint, Token, TokenAccount};
 use mpl_token_metadata::instructions::CreateMetadataAccountV3CpiBuilder;
 
-declare_id!("Ex1mC3Yr55mczVjk6aWmT75F3ZBUwH2BDeYSKx62fbvW");
+declare_id!("CBrB6yQSi9pcxKuRR1uPjj6NLipfpZKYYT71c3gaFf1Y");
 
 #[program]
 pub mod prompt_marketplace {
@@ -238,7 +238,7 @@ pub struct Initialize<'info> {
         seeds = [b"config"],
         bump
     )]
-    pub config: Account<'info, MarketplaceConfig>,
+    pub config: Account<'info, Config>,
     #[account(mut)]
     pub admin: Signer<'info>,
     pub system_program: Program<'info, System>,
@@ -253,7 +253,7 @@ pub struct CloseConfig<'info> {
         bump,
         close = admin
     )]
-    pub config: Account<'info, MarketplaceConfig>,
+    pub config: Account<'info, Config>,
     #[account(mut)]
     pub admin: Signer<'info>,
     pub system_program: Program<'info, System>,
@@ -354,7 +354,7 @@ pub struct BuyPrompt<'info> {
     )]
     pub prompt: Account<'info, Prompt>,
     #[account(has_one = admin)]
-    pub config: Account<'info, MarketplaceConfig>,
+    pub config: Account<'info, Config>,
     pub mint: Account<'info, Mint>,
     #[account(mut)]
     pub buyer: Signer<'info>,
@@ -425,7 +425,7 @@ pub struct DelistPrompt<'info> {
 }
 
 #[account]
-pub struct MarketplaceConfig {
+pub struct Config {
     pub admin: Pubkey,
     pub fee_bps: u64,
     pub bump: u8,

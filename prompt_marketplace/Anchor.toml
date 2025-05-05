@@ -6,7 +6,7 @@ resolution = true
 skip-lint = false
 
 [programs.devnet]
-prompt_marketplace = "Ex1mC3Yr55mczVjk6aWmT75F3ZBUwH2BDeYSKx62fbvW"
+prompt_marketplace = "CBrB6yQSi9pcxKuRR1uPjj6NLipfpZKYYT71c3gaFf1Y"
 
 [registry]
 url = "https://api.apr.dev"

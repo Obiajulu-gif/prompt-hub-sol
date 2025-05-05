@@ -1,6 +1,6 @@
 {
   "license": "ISC",
-  "type": "commonjs",
+  "type": "module",
   "scripts": {
     "lint:fix": "prettier */*.js \"*/**/*{.js,.ts}\" -w",
     "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check",

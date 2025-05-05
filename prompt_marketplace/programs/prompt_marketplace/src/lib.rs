@@ -5,7 +5,7 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::{Mint, Token, TokenAccount};
 use mpl_token_metadata::instructions::CreateMetadataAccountV3CpiBuilder;
 
-declare_id!("EJtTm2xTWQsDf5FXYpsKACCwTH5kanK4WpiaS5Uook3s");
+declare_id!("Ex1mC3Yr55mczVjk6aWmT75F3ZBUwH2BDeYSKx62fbvW");
 
 #[program]
 pub mod prompt_marketplace {
@@ -32,7 +32,7 @@ pub mod prompt_marketplace {
         prompt.royalty_bps = royalty_bps;
         prompt.bump = ctx.bumps.prompt;
 
-        require!(royalty_bps <= 1000, ErrorCode::InvalidRoyalty); // Max 10%
+        require!(royalty_bps <= 1000, ErrorCode::InvalidRoyalty); // Max 10% royalties
         require!(metadata_uri.len() <= 200, ErrorCode::InvalidUri);
 
         // Mint NFT

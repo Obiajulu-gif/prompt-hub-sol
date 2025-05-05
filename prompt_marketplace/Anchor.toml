@@ -6,7 +6,7 @@ resolution = true
 skip-lint = false
 
 [programs.devnet]
-prompt_marketplace = "EJtTm2xTWQsDf5FXYpsKACCwTH5kanK4WpiaS5Uook3s"
+prompt_marketplace = "Ex1mC3Yr55mczVjk6aWmT75F3ZBUwH2BDeYSKx62fbvW"
 
 [registry]
 url = "https://api.apr.dev"
@@ -20,3 +20,5 @@ test = "npm run test"
 
 [test]
 startup_wait = 10000
+shutdown_wait = 2000
+upgradeable = false

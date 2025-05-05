@@ -37,8 +37,9 @@ describe("Prompt Marketplace", () => {
       let accountInfo = await provider.connection.getAccountInfo(configPda);
       if (accountInfo) {
         console.log("Config account found, data length:", accountInfo.data.length);
+        console.log("Raw account data (hex):", accountInfo.data.toString("hex"));
         try {
-          const configAccount = program.coder.accounts.decode("MarketplaceConfig", accountInfo.data);
+          const configAccount = program.coder.accounts.decode("config", accountInfo.data);
           console.log("Config Account:", {
             admin: configAccount.admin.toBase58(),
             feeBps: Number(configAccount.feeBps),
@@ -49,7 +50,7 @@ describe("Prompt Marketplace", () => {
           assert.equal(Number(configAccount.feeBps), 1000, "Fee should be 1000 bps");
           return; // Account is valid, test passes
         } catch (decodeErr) {
-          console.log("Invalid MarketplaceConfig, closing account...");
+          console.log("Invalid config account, closing account...");
           await program.methods
             .closeConfig()
             .accounts({
@@ -82,7 +83,8 @@ describe("Prompt Marketplace", () => {
         throw new Error("Config account not found after initialization");
       }
       console.log("Account data length:", accountInfo.data.length);
-      const configAccount = program.coder.accounts.decode("MarketplaceConfig", accountInfo.data);
+      console.log("Raw account data (hex):", accountInfo.data.toString("hex"));
+      const configAccount = program.coder.accounts.decode("config", accountInfo.data);
       console.log("Config Account:", {
         admin: configAccount.admin.toBase58(),
         feeBps: Number(configAccount.feeBps),

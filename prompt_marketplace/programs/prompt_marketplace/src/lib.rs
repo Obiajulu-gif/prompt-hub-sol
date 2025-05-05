@@ -20,6 +20,16 @@ pub mod prompt_marketplace {
         Ok(())
     }
 
+    pub fn close_config(ctx: Context<CloseConfig>) -> Result<()> {
+        let config = &ctx.accounts.config;
+        let admin = &ctx.accounts.admin;
+        require_keys_eq!(config.admin, admin.key(), ErrorCode::Unauthorized);
+        let lamports = config.to_account_info().lamports();
+        **config.to_account_info().lamports.borrow_mut() -= lamports;
+        **admin.to_account_info().lamports.borrow_mut() += lamports;
+        Ok(())
+    }
+
     pub fn create_prompt(
         ctx: Context<CreatePrompt>,
         metadata_uri: String,
@@ -227,6 +237,21 @@ pub struct Initialize<'info> {
         space = 8 + 32 + 8 + 1,
         seeds = [b"config"],
         bump
+    )]
+    pub config: Account<'info, MarketplaceConfig>,
+    #[account(mut)]
+    pub admin: Signer<'info>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct CloseConfig<'info> {
+    #[account(
+        mut,
+        has_one = admin,
+        seeds = [b"config"],
+        bump,
+        close = admin
     )]
     pub config: Account<'info, MarketplaceConfig>,
     #[account(mut)]
@@ -465,4 +490,6 @@ pub enum ErrorCode {
     NotForSale,
     #[msg("Insufficient funds")]
     InsufficientFunds,
+    #[msg("Unauthorized")]
+    Unauthorized,
 }

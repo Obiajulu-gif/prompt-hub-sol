@@ -24,9 +24,16 @@ pub mod prompt_marketplace {
         let config = &ctx.accounts.config;
         let admin = &ctx.accounts.admin;
         require_keys_eq!(config.admin, admin.key(), ErrorCode::Unauthorized);
-        let lamports = config.to_account_info().lamports();
-        **config.to_account_info().lamports.borrow_mut() -= lamports;
-        **admin.to_account_info().lamports.borrow_mut() += lamports;
+        anchor_lang::system_program::transfer(
+            CpiContext::new(
+                ctx.accounts.system_program.to_account_info(),
+                anchor_lang::system_program::Transfer {
+                    from: ctx.accounts.config.to_account_info(),
+                    to: ctx.accounts.admin.to_account_info(),
+                },
+            ),
+            ctx.accounts.config.to_account_info().lamports(),
+        )?;
         Ok(())
     }
 
@@ -295,6 +302,7 @@ pub struct CreatePrompt<'info> {
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
     /// CHECK: This is the Metaplex Token Metadata program, validated by its known program ID.
+    #[account(address = mpl_token_metadata::ID)]
     pub metadata_program: UncheckedAccount<'info>,
     pub rent: Sysvar<'info, Rent>,
 }

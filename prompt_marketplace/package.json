@@ -9,7 +9,7 @@
   },
   "devDependencies": {
     "@coral-xyz/anchor": "^0.31.1",
-    "@solana/spl-token": "^0.4.13",
+    "@solana/spl-token": "^0.1.8",
     "@solana/web3.js": "^1.98.2",
     "@types/bn.js": "5.1.6",
     "@types/chai": "^5.2.1",
@@ -21,6 +21,7 @@
     "typescript": "^5.8.3"
   },
   "dependencies": {
+    "@coral-xyz/borsh": "^0.31.1",
     "bn.js": "^5.2.2"
   }
 }

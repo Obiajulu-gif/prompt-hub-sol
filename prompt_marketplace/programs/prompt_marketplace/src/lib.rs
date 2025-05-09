@@ -52,6 +52,9 @@ pub mod prompt_marketplace {
         require!(royalty_bps <= 1000, ErrorCode::InvalidRoyalty); // Max 10% royalties
         require!(metadata_uri.len() <= 200, ErrorCode::InvalidUri);
 
+        // Log before mint_to CPI
+        msg!("Attempting mint_to CPI for mint: {}", ctx.accounts.mint.key());
+
         // Mint NFT
         anchor_spl::token::mint_to(
             CpiContext::new(
@@ -64,6 +67,9 @@ pub mod prompt_marketplace {
             ),
             1,
         )?;
+
+        // Log after mint_to CPI
+        msg!("mint_to CPI succeeded, attempting metadata creation");
 
         // Create Metaplex metadata
         CreateMetadataAccountV3CpiBuilder::new(&ctx.accounts.metadata_program)
@@ -88,6 +94,9 @@ pub mod prompt_marketplace {
             })
             .is_mutable(true)
             .invoke()?;
+
+        // Log after metadata CPI
+        msg!("Metadata creation succeeded");
 
         emit!(PromptCreated {
             mint: prompt.mint,
@@ -278,8 +287,7 @@ pub struct CreatePrompt<'info> {
     )]
     pub prompt: Account<'info, Prompt>,
     #[account(
-        init,
-        payer = creator,
+        mut,
         mint::decimals = 0,
         mint::authority = creator,
         mint::freeze_authority = creator,
@@ -287,8 +295,7 @@ pub struct CreatePrompt<'info> {
     )]
     pub mint: Account<'info, Mint>,
     #[account(
-        init,
-        payer = creator,
+        mut,
         token::mint = mint,
         token::authority = creator,
         token::token_program = token_program

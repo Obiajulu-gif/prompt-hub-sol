@@ -117,6 +117,9 @@ pub mod prompt_marketplace {
 
         require!(price > 0, ErrorCode::InvalidPrice);
 
+        // Log before token transfer
+        msg!("Attempting token transfer from {} to {}", ctx.accounts.seller_token.key(), ctx.accounts.escrow_token.key());
+
         // Transfer NFT to escrow
         anchor_spl::token::transfer(
             CpiContext::new(
@@ -129,6 +132,9 @@ pub mod prompt_marketplace {
             ),
             1,
         )?;
+
+        // Log after token transfer
+        msg!("Token transfer succeeded");
 
         emit!(PromptListed {
             mint: listing.mint,
@@ -221,6 +227,9 @@ pub mod prompt_marketplace {
         let listing = &mut ctx.accounts.listing;
         require!(listing.is_active, ErrorCode::NotForSale);
 
+        // Log before token transfer
+        msg!("Attempting token transfer from {} to {}", ctx.accounts.escrow_token.key(), ctx.accounts.seller_token.key());
+
         // Return NFT to seller
         anchor_spl::token::transfer(
             CpiContext::new_with_signer(
@@ -234,6 +243,9 @@ pub mod prompt_marketplace {
             ),
             1,
         )?;
+
+        // Log after token transfer
+        msg!("Token transfer succeeded");
 
         listing.is_active = false;
 
@@ -336,8 +348,7 @@ pub struct ListPrompt<'info> {
     )]
     pub seller_token: Account<'info, TokenAccount>,
     #[account(
-        init,
-        payer = seller,
+        mut,
         token::mint = mint,
         token::authority = escrow_authority,
         token::token_program = token_program

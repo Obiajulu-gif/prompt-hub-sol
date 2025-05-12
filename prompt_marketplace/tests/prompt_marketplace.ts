@@ -2,8 +2,8 @@ import * as anchor from "@coral-xyz/anchor";
 import * as borsh from "@coral-xyz/borsh";
 import * as fs from "fs";
 import BN from "bn.js";
-import { PublicKey, SystemProgram, Transaction, TransactionInstruction, Connection, ComputeBudgetProgram, Keypair } from "@solana/web3.js";
-import { getAssociatedTokenAddressSync, createInitializeMint2Instruction, createAssociatedTokenAccountInstruction, TOKEN_PROGRAM_ID, MINT_SIZE, getMint, getAccount } from "@solana/spl-token";
+import { PublicKey, SystemProgram, Transaction, TransactionInstruction, Connection, ComputeBudgetProgram, Keypair, LAMPORTS_PER_SOL } from "@solana/web3.js";
+import { getAssociatedTokenAddressSync, createInitializeMint2Instruction, createAssociatedTokenAccountInstruction, TOKEN_PROGRAM_ID, MINT_SIZE, getMint, getAccount, createTransferInstruction } from "@solana/spl-token";
 import { assert } from "chai";
 import { createHash } from "crypto";
 
@@ -25,6 +25,7 @@ describe("Prompt Marketplace", () => {
   // Shared setup variables
   let mintPubkey: PublicKey;
   let promptPda: PublicKey;
+  let promptBump: number;
   let creatorToken: PublicKey;
   let metadataPda: PublicKey;
 
@@ -35,7 +36,7 @@ describe("Prompt Marketplace", () => {
         return await fn();
       } catch (err) {
         if (i === retries - 1) throw err;
-        console.warn(`Retry ${i + 1}/${retries} failed: ${err.message}. Retrying in ${delayMs}ms...`);
+        console.warn(`Retry ${i + 1}/${retries} failed: ${(err as Error).message}. Retrying in ${delayMs}ms...`);
         await new Promise(resolve => setTimeout(resolve, delayMs));
       }
     }
@@ -94,6 +95,11 @@ describe("Prompt Marketplace", () => {
     borsh.array(borsh.u8(), 8, "discriminator"),
   ]);
 
+  // Define buy_prompt instruction schema
+  const buyPromptSchema = borsh.struct([
+    borsh.array(borsh.u8(), 8, "discriminator"),
+  ]);
+
   before(async () => {
     try {
       // Config PDA
@@ -135,19 +141,22 @@ describe("Prompt Marketplace", () => {
         tx.recentBlockhash = latestBlockhash.blockhash;
         tx.feePayer = admin.publicKey;
         tx.sign(admin);
-        const txSig = await withRetry(() =>
+        const initTxSig = await withRetry(() =>
           connection.sendRawTransaction(tx.serialize(), {
             skipPreflight: false,
             preflightCommitment: "confirmed",
           })
         );
+        if (!initTxSig) {
+          throw new Error("Failed to obtain transaction signature for config initialization");
+        }
         await withRetry(() =>
           connection.confirmTransaction(
-            { signature: txSig, blockhash: latestBlockhash.blockhash, lastValidBlockHeight: latestBlockhash.lastValidBlockHeight },
+            { signature: initTxSig, blockhash: latestBlockhash.blockhash, lastValidBlockHeight: latestBlockhash.lastValidBlockHeight },
             "confirmed"
           )
         );
-        console.log("Config initialization complete, transaction signature:", txSig);
+        console.log("Config initialization complete, transaction signature:", initTxSig);
       }
 
       // Prompt setup
@@ -162,6 +171,7 @@ describe("Prompt Marketplace", () => {
         programId
       );
       promptPda = promptPdaDerived;
+      promptBump = bump;
 
       // Derive Metadata PDA
       const [metadataPdaDerived] = PublicKey.findProgramAddressSync(
@@ -230,6 +240,9 @@ describe("Prompt Marketplace", () => {
           preflightCommitment: "confirmed",
         })
       );
+      if (!initTxSig) {
+        throw new Error("Failed to obtain transaction signature for mint initialization");
+      }
       await withRetry(() =>
         connection.confirmTransaction(
           { signature: initTxSig, blockhash: latestBlockhash.blockhash, lastValidBlockHeight: latestBlockhash.lastValidBlockHeight },
@@ -285,6 +298,9 @@ describe("Prompt Marketplace", () => {
           preflightCommitment: "confirmed",
         })
       );
+      if (!createTxSig) {
+        throw new Error("Failed to obtain transaction signature for prompt creation");
+      }
       await withRetry(() =>
         connection.confirmTransaction(
           { signature: createTxSig, blockhash: createBlockhash.blockhash, lastValidBlockHeight: createBlockhash.lastValidBlockHeight },
@@ -352,7 +368,8 @@ describe("Prompt Marketplace", () => {
       assert.equal(decoded.creator.toBase58(), admin.publicKey.toBase58(), "Creator should match");
       assert.equal(decoded.metadata_uri, "https://example.com/metadata.json", "Metadata URI should match");
       assert.equal(Number(decoded.royalty_bps), 500, "Royalty BPS should match");
-      assert.equal(decoded.bump, 254, "Bump should match");
+      assert.equal(decoded.bump, promptBump, "Bump should match");
+      console.log(`Prompt Bump: expected ${promptBump}, actual ${decoded.bump}`);
 
       // Verify mint state
       const mintInfo = await withRetry(() => getMint(connection, mintPubkey));
@@ -417,38 +434,48 @@ describe("Prompt Marketplace", () => {
         createHash("sha256").update("account:Listing").digest().slice(0, 8)
       );
 
-      // Initialize escrow token account
-      const createEscrowAtaIx = createAssociatedTokenAccountInstruction(
-        seller.publicKey, // payer
-        escrowToken, // ATA address
-        escrowAuthority, // owner (PDA)
-        mintPubkey, // mint
-        TOKEN_PROGRAM_ID
-      );
+      // Check if escrow token account exists
+      const escrowAccountInfo = await withRetry(() => connection.getAccountInfo(escrowToken));
+      let initEscrowTxSig: string | undefined;
+      if (!escrowAccountInfo) {
+        // Initialize escrow token account
+        const createEscrowAtaIx = createAssociatedTokenAccountInstruction(
+          seller.publicKey, // payer
+          escrowToken, // ATA address
+          escrowAuthority, // owner (PDA)
+          mintPubkey, // mint
+          TOKEN_PROGRAM_ID
+        );
 
-      const initEscrowTx = new Transaction().add(
-        ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 200000 }),
-        ComputeBudgetProgram.setComputeUnitLimit({ units: 200_000 }),
-        createEscrowAtaIx
-      );
+        const initEscrowTx = new Transaction().add(
+          ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 200000 }),
+          ComputeBudgetProgram.setComputeUnitLimit({ units: 600_000 }), // Increased
+          createEscrowAtaIx
+        );
 
-      let latestBlockhash = await withRetry(() => connection.getLatestBlockhash("confirmed"));
-      initEscrowTx.recentBlockhash = latestBlockhash.blockhash;
-      initEscrowTx.feePayer = seller.publicKey;
-      initEscrowTx.sign(seller);
-      const initEscrowTxSig = await withRetry(() =>
-        connection.sendRawTransaction(initEscrowTx.serialize(), {
-          skipPreflight: false,
-          preflightCommitment: "confirmed",
-        })
-      );
-      await withRetry(() =>
-        connection.confirmTransaction(
-          { signature: initEscrowTxSig, blockhash: latestBlockhash.blockhash, lastValidBlockHeight: latestBlockhash.lastValidBlockHeight },
-          "confirmed"
-        )
-      );
-      console.log("Escrow token account initialization complete, transaction signature:", initEscrowTxSig);
+        let latestBlockhash = await withRetry(() => connection.getLatestBlockhash("confirmed"));
+        initEscrowTx.recentBlockhash = latestBlockhash.blockhash;
+        initEscrowTx.feePayer = seller.publicKey;
+        initEscrowTx.sign(seller);
+        initEscrowTxSig = await withRetry(() =>
+          connection.sendRawTransaction(initEscrowTx.serialize(), {
+            skipPreflight: false,
+            preflightCommitment: "confirmed",
+          })
+        );
+        if (!initEscrowTxSig) {
+          throw new Error("Failed to obtain transaction signature for escrow initialization");
+        }
+        await withRetry(() =>
+          connection.confirmTransaction(
+            { signature: initEscrowTxSig, blockhash: latestBlockhash.blockhash, lastValidBlockHeight: latestBlockhash.lastValidBlockHeight },
+            "confirmed"
+          )
+        );
+        console.log("Escrow token account initialization complete, transaction signature:", initEscrowTxSig);
+      } else {
+        console.log("Escrow token account already initialized, skipping creation");
+      }
 
       // Verify escrow token account (should be empty initially)
       const escrowTokenInfoInit = await withRetry(() => getAccount(connection, escrowToken));
@@ -469,7 +496,7 @@ describe("Prompt Marketplace", () => {
       listPromptSchema.encode(
         {
           discriminator: listInstructionDiscriminator,
-          price: price,
+          price: price
         },
         listInstructionData
       );
@@ -496,7 +523,7 @@ describe("Prompt Marketplace", () => {
         listIx
       );
 
-      latestBlockhash = await withRetry(() => connection.getLatestBlockhash("confirmed"));
+      let latestBlockhash = await withRetry(() => connection.getLatestBlockhash("confirmed"));
       listTx.recentBlockhash = latestBlockhash.blockhash;
       listTx.feePayer = seller.publicKey;
       listTx.sign(seller);
@@ -506,6 +533,9 @@ describe("Prompt Marketplace", () => {
           preflightCommitment: "confirmed",
         })
       );
+      if (!listTxSig) {
+        throw new Error("Failed to obtain transaction signature for prompt listing");
+      }
       await withRetry(() =>
         connection.confirmTransaction(
           { signature: listTxSig, blockhash: latestBlockhash.blockhash, lastValidBlockHeight: latestBlockhash.lastValidBlockHeight },
@@ -604,6 +634,9 @@ describe("Prompt Marketplace", () => {
           preflightCommitment: "confirmed",
         })
       );
+      if (!delistTxSig) {
+        throw new Error("Failed to obtain transaction signature for prompt delisting");
+      }
       await withRetry(() =>
         connection.confirmTransaction(
           { signature: delistTxSig, blockhash: latestBlockhash.blockhash, lastValidBlockHeight: latestBlockhash.lastValidBlockHeight },
@@ -642,6 +675,585 @@ describe("Prompt Marketplace", () => {
         amount: sellerTokenInfoPost.amount.toString()
       });
       assert.equal(sellerTokenInfoPost.amount.toString(), "1", "Seller token amount should be 1");
+    } catch (err) {
+      console.error("Test error:", err);
+      throw err;
+    }
+  });
+
+  it("Buys and re-lists a prompt", async () => {
+    try {
+      // Load seller keypair from file
+      const seller = Keypair.fromSecretKey(
+        Buffer.from(JSON.parse(fs.readFileSync(process.env.HOME + "/Documents/projects/Rust/solana/partnership/prompt-hub-sol/prompt_marketplace/seller-keypair.json", "utf8")))
+      );
+      console.log("Seller Public Key:", seller.publicKey.toBase58());
+
+      // Check seller balance
+      const sellerBalance = await withRetry(() => connection.getBalance(seller.publicKey));
+      console.log("Seller SOL Balance (initial):", sellerBalance / LAMPORTS_PER_SOL, "SOL");
+      if (sellerBalance < 0.1 * LAMPORTS_PER_SOL) {
+        throw new Error(
+          `Seller wallet ${seller.publicKey.toBase58()} has insufficient SOL (${sellerBalance / LAMPORTS_PER_SOL} SOL). ` +
+          `Please fund it with at least 0.1 SOL using: ` +
+          `solana transfer ${seller.publicKey.toBase58()} 0.1 --url https://api.devnet.solana.com`
+        );
+      }
+
+      // Transfer the prompt NFT from admin to seller
+      const sellerToken = getAssociatedTokenAddressSync(
+        mintPubkey,
+        seller.publicKey,
+        false,
+        TOKEN_PROGRAM_ID
+      );
+
+      // Create seller's token account
+      const createSellerAtaIx = createAssociatedTokenAccountInstruction(
+        admin.publicKey, // payer
+        sellerToken,
+        seller.publicKey,
+        mintPubkey,
+        TOKEN_PROGRAM_ID
+      );
+
+      // Transfer NFT from admin to seller
+      const transferIx = createTransferInstruction(
+        creatorToken, // admin's token account
+        sellerToken,
+        admin.publicKey,
+        1,
+        TOKEN_PROGRAM_ID
+      );
+
+      const transferTx = new Transaction().add(
+        ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 200000 }),
+        ComputeBudgetProgram.setComputeUnitLimit({ units: 200_000 }),
+        createSellerAtaIx,
+        transferIx
+      );
+
+      let latestBlockhash = await withRetry(() => connection.getLatestBlockhash("confirmed"));
+      transferTx.recentBlockhash = latestBlockhash.blockhash;
+      transferTx.feePayer = admin.publicKey;
+      transferTx.sign(admin);
+      const transferTxSig = await withRetry(() =>
+        connection.sendRawTransaction(transferTx.serialize(), {
+          skipPreflight: false,
+          preflightCommitment: "confirmed",
+        })
+      );
+      await withRetry(() =>
+        connection.confirmTransaction(
+          { signature: transferTxSig, blockhash: latestBlockhash.blockhash, lastValidBlockHeight: latestBlockhash.lastValidBlockHeight },
+          "confirmed"
+        )
+      );
+      console.log("NFT transferred to seller, transaction signature:", transferTxSig);
+
+      const price = new BN(1_000_000_000); // 1 SOL
+      // Load buyer keypair from file
+      const buyer = Keypair.fromSecretKey(
+        Buffer.from(JSON.parse(fs.readFileSync(process.env.HOME + "/Documents/projects/Rust/solana/partnership/prompt-hub-sol/prompt_marketplace/buyer-keypair.json", "utf8")))
+      );
+      console.log("Buyer Public Key:", buyer.publicKey.toBase58());
+
+      // Check buyer balance
+      const buyerBalance = await withRetry(() => connection.getBalance(buyer.publicKey));
+      console.log("Buyer SOL Balance (initial):", buyerBalance / LAMPORTS_PER_SOL, "SOL");
+      if (buyerBalance < 1.1 * LAMPORTS_PER_SOL) {
+        throw new Error(
+          `Buyer wallet ${buyer.publicKey.toBase58()} has insufficient SOL (${buyerBalance / LAMPORTS_PER_SOL} SOL). ` +
+          `Please fund it with at least 1.1 SOL using: ` +
+          `solana transfer ${buyer.publicKey.toBase58()} 1.1 --url https://api.devnet.solana.com`
+        );
+      }
+
+      // Derive Listing PDA
+      const [listingPda, listingBump] = PublicKey.findProgramAddressSync(
+        [Buffer.from("listing"), mintPubkey.toBuffer()],
+        programId
+      );
+      console.log("Listing PDA:", listingPda.toBase58());
+
+      // Derive Escrow Authority PDA
+      const [escrowAuthority, escrowBump] = PublicKey.findProgramAddressSync(
+        [Buffer.from("escrow"), mintPubkey.toBuffer()],
+        programId
+      );
+      console.log("Escrow Authority PDA:", escrowAuthority.toBase58());
+
+      // Compute Escrow Token Account (ATA) address
+      const escrowToken = getAssociatedTokenAddressSync(
+        mintPubkey,
+        escrowAuthority,
+        true, // Allow owner off-curve (PDA)
+        TOKEN_PROGRAM_ID
+      );
+      console.log("Escrow Token Address:", escrowToken.toBase58());
+
+      // Compute Buyer Token Account (ATA) address
+      const buyerToken = getAssociatedTokenAddressSync(
+        mintPubkey,
+        buyer.publicKey,
+        false,
+        TOKEN_PROGRAM_ID
+      );
+      console.log("Buyer Token Address:", buyerToken.toBase58());
+
+      // Expected discriminator for Listing account
+      const expectedDiscriminator = Buffer.from(
+        createHash("sha256").update("account:Listing").digest().slice(0, 8)
+      );
+
+      // Check if escrow token account exists
+      const escrowAccountInfo = await withRetry(() => connection.getAccountInfo(escrowToken));
+      let initEscrowTxSig: string | undefined;
+      if (!escrowAccountInfo) {
+        // Initialize escrow token account
+        const createEscrowAtaIx = createAssociatedTokenAccountInstruction(
+          seller.publicKey, // payer
+          escrowToken, // ATA address
+          escrowAuthority, // owner (PDA)
+          mintPubkey, // mint
+          TOKEN_PROGRAM_ID
+        );
+
+        const initEscrowTx = new Transaction().add(
+          ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 200000 }),
+          ComputeBudgetProgram.setComputeUnitLimit({ units: 600_000 }),
+          createEscrowAtaIx
+        );
+
+        latestBlockhash = await withRetry(() => connection.getLatestBlockhash("confirmed"));
+        initEscrowTx.recentBlockhash = latestBlockhash.blockhash;
+        initEscrowTx.feePayer = seller.publicKey;
+        initEscrowTx.sign(seller);
+        initEscrowTxSig = await withRetry(() =>
+          connection.sendRawTransaction(initEscrowTx.serialize(), {
+            skipPreflight: false,
+            preflightCommitment: "confirmed",
+          })
+        );
+        if (!initEscrowTxSig) {
+          throw new Error("Failed to obtain transaction signature for escrow initialization");
+        }
+        await withRetry(() =>
+          connection.confirmTransaction(
+            { signature: initEscrowTxSig, blockhash: latestBlockhash.blockhash, lastValidBlockHeight: latestBlockhash.lastValidBlockHeight },
+            "confirmed"
+          )
+        );
+        console.log("Escrow token account initialization complete, transaction signature:", initEscrowTxSig);
+      } else {
+        console.log("Escrow token account already initialized, skipping creation");
+      }
+
+      // Check if buyer token account exists, initialize if not
+      const buyerTokenInfo = await withRetry(() => connection.getAccountInfo(buyerToken));
+      let initBuyerAtaTxSig: string | undefined;
+      if (!buyerTokenInfo) {
+        const createBuyerAtaIx = createAssociatedTokenAccountInstruction(
+          buyer.publicKey, // payer
+          buyerToken, // ATA address
+          buyer.publicKey, // owner
+          mintPubkey, // mint
+          TOKEN_PROGRAM_ID
+        );
+
+        const initBuyerAtaTx = new Transaction().add(
+          ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 200000 }),
+          ComputeBudgetProgram.setComputeUnitLimit({ units: 200_000 }),
+          createBuyerAtaIx
+        );
+
+        latestBlockhash = await withRetry(() => connection.getLatestBlockhash("confirmed"));
+        initBuyerAtaTx.recentBlockhash = latestBlockhash.blockhash;
+        initBuyerAtaTx.feePayer = buyer.publicKey;
+        initBuyerAtaTx.sign(buyer);
+        initBuyerAtaTxSig = await withRetry(() =>
+          connection.sendRawTransaction(initBuyerAtaTx.serialize(), {
+            skipPreflight: false,
+            preflightCommitment: "confirmed",
+          })
+        );
+        if (!initBuyerAtaTxSig) {
+          throw new Error("Failed to obtain transaction signature for buyer ATA initialization");
+        }
+        await withRetry(() =>
+          connection.confirmTransaction(
+            { signature: initBuyerAtaTxSig, blockhash: latestBlockhash.blockhash, lastValidBlockHeight: latestBlockhash.lastValidBlockHeight },
+            "confirmed"
+          )
+        );
+        console.log("Buyer token account initialization complete, transaction signature:", initBuyerAtaTxSig);
+      } else {
+        console.log("Buyer token account already initialized, skipping creation");
+      }
+
+      // Verify buyer token account state
+      const buyerTokenState = await withRetry(() => getAccount(connection, buyerToken));
+      console.log("Buyer Token Info (pre-buy):", {
+        mint: buyerTokenState.mint.toBase58(),
+        owner: buyerTokenState.owner.toBase58(),
+        amount: buyerTokenState.amount.toString(),
+        address: buyerToken.toBase58(),
+        isInitialized: buyerTokenState.isInitialized,
+        delegate: buyerTokenState.delegate?.toBase58() || "null",
+        delegatedAmount: buyerTokenState.delegatedAmount.toString()
+      });
+      assert.equal(buyerTokenState.mint.toBase58(), mintPubkey.toBase58(), "Buyer token mint should match");
+      assert.equal(buyerTokenState.owner.toBase58(), buyer.publicKey.toBase58(), "Buyer token owner should be buyer");
+      assert.equal(buyerTokenState.amount.toString(), "0", "Buyer token amount should be 0 before purchase");
+
+      // List prompt (to set up for buying)
+      const listInstructionDiscriminator = Buffer.from(
+        createHash("sha256").update("global:list_prompt").digest().slice(0, 8)
+      );
+      const listInstructionData = Buffer.alloc(16);
+      listPromptSchema.encode(
+        {
+          discriminator: listInstructionDiscriminator,
+          price: price
+        },
+        listInstructionData
+      );
+
+      const listIx = new TransactionInstruction({
+        keys: [
+          { pubkey: listingPda, isSigner: false, isWritable: true }, // listing
+          { pubkey: promptPda, isSigner: false, isWritable: false }, // prompt
+          { pubkey: mintPubkey, isSigner: false, isWritable: false }, // mint
+          { pubkey: seller.publicKey, isSigner: true, isWritable: true }, // seller
+          { pubkey: sellerToken, isSigner: false, isWritable: true }, // seller_token
+          { pubkey: escrowToken, isSigner: false, isWritable: true }, // escrow_token
+          { pubkey: escrowAuthority, isSigner: false, isWritable: false }, // escrow_authority
+          { pubkey: SystemProgram.programId, isSigner: false, isWritable: false }, // system_program
+          { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false }, // token_program
+        ],
+        programId,
+        data: listInstructionData,
+      });
+
+      const listTx = new Transaction().add(
+        ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 200000 }),
+        ComputeBudgetProgram.setComputeUnitLimit({ units: 400_000 }),
+        listIx
+      );
+
+      latestBlockhash = await withRetry(() => connection.getLatestBlockhash("confirmed"));
+      listTx.recentBlockhash = latestBlockhash.blockhash;
+      listTx.feePayer = seller.publicKey;
+      listTx.sign(seller);
+      const listTxSig = await withRetry(() =>
+        connection.sendRawTransaction(listTx.serialize(), {
+          skipPreflight: false,
+          preflightCommitment: "confirmed",
+        })
+      );
+      if (!listTxSig) {
+        throw new Error("Failed to obtain transaction signature for prompt listing");
+      }
+      await withRetry(() =>
+        connection.confirmTransaction(
+          { signature: listTxSig, blockhash: latestBlockhash.blockhash, lastValidBlockHeight: latestBlockhash.lastValidBlockHeight },
+          "confirmed"
+        )
+      );
+      console.log("Prompt listing complete, transaction signature:", listTxSig);
+
+      // Record initial SOL balances
+      const sellerBalanceBefore = await withRetry(() => connection.getBalance(seller.publicKey));
+      const adminBalanceBefore = await withRetry(() => connection.getBalance(admin.publicKey));
+      const creatorBalanceBefore = await withRetry(() => connection.getBalance(admin.publicKey)); // Creator is admin
+      const buyerBalanceBefore = await withRetry(() => connection.getBalance(buyer.publicKey));
+      console.log("Initial SOL Balances:", {
+        seller: {
+          publicKey: seller.publicKey.toBase58(),
+          balance: sellerBalanceBefore / LAMPORTS_PER_SOL,
+          lamports: sellerBalanceBefore
+        },
+        admin: {
+          publicKey: admin.publicKey.toBase58(),
+          balance: adminBalanceBefore / LAMPORTS_PER_SOL,
+          lamports: adminBalanceBefore
+        },
+        creator: {
+          publicKey: admin.publicKey.toBase58(),
+          balance: creatorBalanceBefore / LAMPORTS_PER_SOL,
+          lamports: creatorBalanceBefore
+        },
+        buyer: {
+          publicKey: buyer.publicKey.toBase58(),
+          balance: buyerBalanceBefore / LAMPORTS_PER_SOL,
+          lamports: buyerBalanceBefore
+        }
+      });
+
+      // Build buy_prompt instruction
+      const buyInstructionDiscriminator = Buffer.from(
+        createHash("sha256").update("global:buy_prompt").digest().slice(0, 8)
+      );
+      const buyInstructionData = Buffer.alloc(8);
+      buyPromptSchema.encode(
+        {
+          discriminator: buyInstructionDiscriminator,
+        },
+        buyInstructionData
+      );
+
+      const buyIxAccounts = [
+        { pubkey: listingPda, isSigner: false, isWritable: true, name: "listing" },
+        { pubkey: promptPda, isSigner: false, isWritable: false, name: "prompt" },
+        { pubkey: new PublicKey("4wzdty85maw7Q6TZE8Z496DgJeFHwcA8HzmNMbBE8ivJ"), isSigner: false, isWritable: false, name: "config" },
+        { pubkey: mintPubkey, isSigner: false, isWritable: false, name: "mint" },
+        { pubkey: buyer.publicKey, isSigner: true, isWritable: true, name: "buyer" },
+        { pubkey: seller.publicKey, isSigner: false, isWritable: true, name: "seller" },
+        { pubkey: admin.publicKey, isSigner: false, isWritable: true, name: "admin" },
+        { pubkey: admin.publicKey, isSigner: false, isWritable: true, name: "creator" },
+        { pubkey: buyerToken, isSigner: false, isWritable: true, name: "buyer_token" },
+        { pubkey: escrowToken, isSigner: false, isWritable: true, name: "escrow_token" },
+        { pubkey: escrowAuthority, isSigner: false, isWritable: false, name: "escrow_authority" },
+        { pubkey: SystemProgram.programId, isSigner: false, isWritable: false, name: "system_program" },
+        { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false, name: "token_program" },
+        { pubkey: new PublicKey("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"), isSigner: false, isWritable: false, name: "associated_token_program" }
+      ];
+      console.log("Buy Prompt Instruction Accounts:", buyIxAccounts.map(acc => ({
+        name: acc.name,
+        pubkey: acc.pubkey.toBase58(),
+        isSigner: acc.isSigner,
+        isWritable: acc.isWritable
+      })));
+
+      const buyIx = new TransactionInstruction({
+        keys: buyIxAccounts.map(acc => ({
+          pubkey: acc.pubkey,
+          isSigner: acc.isSigner,
+          isWritable: acc.isWritable
+        })),
+        programId,
+        data: buyInstructionData,
+      });
+
+      const buyTx = new Transaction().add(
+        ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 200000 }),
+        ComputeBudgetProgram.setComputeUnitLimit({ units: 1_000_000 }),
+        buyIx
+      );
+
+      latestBlockhash = await withRetry(() => connection.getLatestBlockhash("confirmed"));
+      buyTx.recentBlockhash = latestBlockhash.blockhash;
+      buyTx.feePayer = buyer.publicKey;
+      buyTx.sign(buyer);
+      console.log("Buy Transaction Details:", {
+        recentBlockhash: buyTx.recentBlockhash,
+        feePayer: buyTx.feePayer.toBase58(),
+        instructions: buyTx.instructions.length,
+        computeUnitPrice: 200000,
+        computeUnitLimit: 1000000
+      });
+      const buyTxSig = await withRetry(() =>
+        connection.sendRawTransaction(buyTx.serialize(), {
+          skipPreflight: false,
+          preflightCommitment: "confirmed",
+        })
+      );
+      if (!buyTxSig) {
+        throw new Error("Failed to obtain transaction signature for buy prompt");
+      }
+      await withRetry(() =>
+        connection.confirmTransaction(
+          { signature: buyTxSig, blockhash: latestBlockhash.blockhash, lastValidBlockHeight: latestBlockhash.lastValidBlockHeight },
+          "confirmed"
+        )
+      );
+      console.log("Prompt purchase complete, transaction signature:", buyTxSig);
+
+      // Verify Listing account (after purchase)
+      const listingAccountInfoPostBuy = await withRetry(() => connection.getAccountInfo(listingPda));
+      assert(listingAccountInfoPostBuy, "Listing account should exist");
+      const decodedListingPostBuy = listingSchema.decode(listingAccountInfoPostBuy.data);
+      console.log("Listing Account (post-buy):", {
+        mint: decodedListingPostBuy.mint.toBase58(),
+        seller: decodedListingPostBuy.seller.toBase58(),
+        price: Number(decodedListingPostBuy.price),
+        isActive: decodedListingPostBuy.is_active,
+        bump: decodedListingPostBuy.bump
+      });
+      assert.equal(decodedListingPostBuy.is_active, false, "Listing should be inactive");
+
+      // Verify Escrow Token account (after purchase)
+      const escrowTokenInfoPostBuy = await withRetry(() => getAccount(connection, escrowToken));
+      console.log("Escrow Token Info (post-buy):", {
+        mint: escrowTokenInfoPostBuy.mint.toBase58(),
+        owner: escrowTokenInfoPostBuy.owner.toBase58(),
+        amount: escrowTokenInfoPostBuy.amount.toString()
+      });
+      assert.equal(escrowTokenInfoPostBuy.amount.toString(), "0", "Escrow token amount should be 0");
+
+      // Verify Buyer Token account (after purchase)
+      const buyerTokenInfoPostBuy = await withRetry(() => getAccount(connection, buyerToken));
+      console.log("Buyer Token Info (post-buy):", {
+        mint: buyerTokenInfoPostBuy.mint.toBase58(),
+        owner: buyerTokenInfoPostBuy.owner.toBase58(),
+        amount: buyerTokenInfoPostBuy.amount.toString(),
+        address: buyerToken.toBase58(),
+        isInitialized: buyerTokenInfoPostBuy.isInitialized
+      });
+      assert.equal(buyerTokenInfoPostBuy.mint.toBase58(), mintPubkey.toBase58(), "Buyer token mint should match");
+      assert.equal(buyerTokenInfoPostBuy.owner.toBase58(), buyer.publicKey.toBase58(), "Buyer token owner should be buyer");
+      assert.equal(buyerTokenInfoPostBuy.amount.toString(), "1", "Buyer token amount should be 1");
+
+      // Verify SOL balances (after purchase)
+      const platformFee = (price.toNumber() * 1000) / 10000; // 10% fee (1000 bps)
+      const royalty = (price.toNumber() * 500) / 10000; // 5% royalty (500 bps)
+      const sellerAmount = price.toNumber() - platformFee - royalty;
+      const sellerBalanceAfter = await withRetry(() => connection.getBalance(seller.publicKey));
+      const adminBalanceAfter = await withRetry(() => connection.getBalance(admin.publicKey));
+      const creatorBalanceAfter = await withRetry(() => connection.getBalance(admin.publicKey)); // Creator is admin
+      const buyerBalanceAfter = await withRetry(() => connection.getBalance(buyer.publicKey));
+      console.log("SOL Balances After Purchase:", {
+        seller: {
+          publicKey: seller.publicKey.toBase58(),
+          balance: sellerBalanceAfter / LAMPORTS_PER_SOL,
+          lamports: sellerBalanceAfter,
+          expectedIncrease: sellerAmount,
+          actualIncrease: sellerBalanceAfter - sellerBalanceBefore
+        },
+        admin: {
+          publicKey: admin.publicKey.toBase58(),
+          balance: adminBalanceAfter / LAMPORTS_PER_SOL,
+          lamports: adminBalanceAfter,
+          expectedIncrease: platformFee,
+          actualIncrease: adminBalanceAfter - adminBalanceBefore
+        },
+        creator: {
+          publicKey: admin.publicKey.toBase58(),
+          balance: creatorBalanceAfter / LAMPORTS_PER_SOL,
+          lamports: creatorBalanceAfter,
+          expectedIncrease: royalty,
+          actualIncrease: creatorBalanceAfter - creatorBalanceBefore
+        },
+        buyer: {
+          publicKey: buyer.publicKey.toBase58(),
+          balance: buyerBalanceAfter / LAMPORTS_PER_SOL,
+          lamports: buyerBalanceAfter,
+          expectedDecrease: price.toNumber(),
+          actualDecrease: buyerBalanceBefore - buyerBalanceAfter
+        }
+      });
+
+      // Approximate balance checks (accounting for transaction fees)
+      assert.approximately(
+        sellerBalanceAfter,
+        sellerBalanceBefore + sellerAmount,
+        100_000, // Allow 0.0001 SOL variance for fees
+        `Seller balance should increase by seller amount (${sellerAmount} lamports)`
+      );
+      assert.approximately(
+        adminBalanceAfter,
+        adminBalanceBefore + platformFee + royalty, // Admin receives both (creator is admin)
+        100_000,
+        `Admin balance should increase by platform fee (${platformFee}) + royalty (${royalty})`
+      );
+      assert.approximately(
+        buyerBalanceAfter,
+        buyerBalanceBefore - price.toNumber(),
+        1_000_000, // Increased tolerance to 0.001 SOL to account for transaction fees
+        `Buyer balance should decrease by price (${price.toNumber()} lamports)`
+      );
+
+      // Re-list prompt (buyer becomes seller)
+      const newSeller = buyer;
+      const newPrice = new BN(1_500_000_000); // 1.5 SOL
+
+      // Build re-list_prompt instruction
+      const relistInstructionData = Buffer.alloc(16);
+      listPromptSchema.encode(
+        {
+          discriminator: listInstructionDiscriminator,
+          price: newPrice,
+        },
+        relistInstructionData
+      );
+
+      const relistIx = new TransactionInstruction({
+        keys: [
+          { pubkey: listingPda, isSigner: false, isWritable: true }, // listing
+          { pubkey: promptPda, isSigner: false, isWritable: false }, // prompt
+          { pubkey: mintPubkey, isSigner: false, isWritable: false }, // mint
+          { pubkey: newSeller.publicKey, isSigner: true, isWritable: true }, // seller (buyer)
+          { pubkey: buyerToken, isSigner: false, isWritable: true }, // seller_token (buyer_token)
+          { pubkey: escrowToken, isSigner: false, isWritable: true }, // escrow_token
+          { pubkey: escrowAuthority, isSigner: false, isWritable: false }, // escrow_authority
+          { pubkey: SystemProgram.programId, isSigner: false, isWritable: false }, // system_program
+          { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false }, // token_program
+        ],
+        programId,
+        data: relistInstructionData,
+      });
+
+      const relistTx = new Transaction().add(
+        ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 200000 }),
+        ComputeBudgetProgram.setComputeUnitLimit({ units: 400_000 }),
+        relistIx
+      );
+
+      latestBlockhash = await withRetry(() => connection.getLatestBlockhash("confirmed"));
+      relistTx.recentBlockhash = latestBlockhash.blockhash;
+      relistTx.feePayer = newSeller.publicKey;
+      relistTx.sign(newSeller);
+      const relistTxSig = await withRetry(() =>
+        connection.sendRawTransaction(relistTx.serialize(), {
+          skipPreflight: false,
+          preflightCommitment: "confirmed",
+        })
+      );
+      if (!relistTxSig) {
+        throw new Error("Failed to obtain transaction signature for prompt re-listing");
+      }
+      await withRetry(() =>
+        connection.confirmTransaction(
+          { signature: relistTxSig, blockhash: latestBlockhash.blockhash, lastValidBlockHeight: latestBlockhash.lastValidBlockHeight },
+          "confirmed"
+        )
+      );
+      console.log("Prompt re-listing complete, transaction signature:", relistTxSig);
+
+      // Verify Listing account (after re-listing)
+      const listingAccountInfoPostRelist = await withRetry(() => connection.getAccountInfo(listingPda));
+      assert(listingAccountInfoPostRelist, "Listing account should exist");
+      const decodedListingPostRelist = listingSchema.decode(listingAccountInfoPostRelist.data);
+      console.log("Listing Account (post-relist):", {
+        mint: decodedListingPostRelist.mint.toBase58(),
+        seller: decodedListingPostRelist.seller.toBase58(),
+        price: Number(decodedListingPostRelist.price),
+        isActive: decodedListingPostRelist.is_active,
+        bump: decodedListingPostRelist.bump
+      });
+      assert.equal(decodedListingPostRelist.mint.toBase58(), mintPubkey.toBase58(), "Mint should match");
+      assert.equal(decodedListingPostRelist.seller.toBase58(), newSeller.publicKey.toBase58(), "Seller should be buyer");
+      assert.equal(Number(decodedListingPostRelist.price), newPrice.toNumber(), "Price should match new price");
+      assert.equal(decodedListingPostRelist.is_active, true, "Listing should be active");
+      assert.equal(decodedListingPostRelist.bump, listingBump, "Bump should match");
+
+      // Verify Escrow Token account (after re-listing)
+      const escrowTokenInfoPostRelist = await withRetry(() => getAccount(connection, escrowToken));
+      console.log("Escrow Token Info (post-relist):", {
+        mint: escrowTokenInfoPostRelist.mint.toBase58(),
+        owner: escrowTokenInfoPostRelist.owner.toBase58(),
+        amount: escrowTokenInfoPostRelist.amount.toString()
+      });
+      assert.equal(escrowTokenInfoPostRelist.amount.toString(), "1", "Escrow token amount should be 1");
+
+      // Verify Buyer Token account (after re-listing)
+      const buyerTokenInfoPostRelist = await withRetry(() => getAccount(connection, buyerToken));
+      console.log("Buyer Token Info (post-relist):", {
+        mint: buyerTokenInfoPostRelist.mint.toBase58(),
+        owner: buyerTokenInfoPostRelist.owner.toBase58(),
+        amount: buyerTokenInfoPostRelist.amount.toString()
+      });
+      assert.equal(buyerTokenInfoPostRelist.amount.toString(), "0", "Buyer token amount should be 0");
     } catch (err) {
       console.error("Test error:", err);
       throw err;

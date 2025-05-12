@@ -1,5 +1,6 @@
 {
   "name": "legacy-next-tailwind-counter",
+  "type": "module",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -11,7 +12,8 @@
     "build": "next build",
     "ci": "npm run build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
   },
   "dependencies": {
     "@ai-sdk/openai": "^1.2.5",

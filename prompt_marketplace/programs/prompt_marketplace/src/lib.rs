@@ -3,6 +3,7 @@
 
 use anchor_lang::prelude::*;
 use anchor_spl::token::{Mint, Token, TokenAccount};
+use anchor_spl::associated_token::AssociatedToken;
 use mpl_token_metadata::instructions::CreateMetadataAccountV3CpiBuilder;
 
 declare_id!("CBrB6yQSi9pcxKuRR1uPjj6NLipfpZKYYT71c3gaFf1Y");
@@ -17,6 +18,7 @@ pub mod prompt_marketplace {
         config.fee_bps = fee_bps;
         config.bump = ctx.bumps.config;
         require!(fee_bps <= 1000, ErrorCode::InvalidFee); // Max 10%
+        msg!("Initialized config: admin={}, fee_bps={}, bump={}", config.admin, config.fee_bps, config.bump);
         Ok(())
     }
 
@@ -34,6 +36,7 @@ pub mod prompt_marketplace {
             ),
             ctx.accounts.config.to_account_info().lamports(),
         )?;
+        msg!("Closed config: admin={}", admin.key());
         Ok(())
     }
 
@@ -52,10 +55,10 @@ pub mod prompt_marketplace {
         require!(royalty_bps <= 1000, ErrorCode::InvalidRoyalty); // Max 10% royalties
         require!(metadata_uri.len() <= 200, ErrorCode::InvalidUri);
 
-        // Log before mint_to CPI
-        msg!("Attempting mint_to CPI for mint: {}", ctx.accounts.mint.key());
+        msg!("Creating prompt: mint={}, creator={}, metadata_uri={}, royalty_bps={}",
+            prompt.mint, prompt.creator, prompt.metadata_uri, prompt.royalty_bps);
 
-        // Mint NFT
+        msg!("Attempting mint_to CPI for mint: {}", ctx.accounts.mint.key());
         anchor_spl::token::mint_to(
             CpiContext::new(
                 ctx.accounts.token_program.to_account_info(),
@@ -67,11 +70,8 @@ pub mod prompt_marketplace {
             ),
             1,
         )?;
-
-        // Log after mint_to CPI
         msg!("mint_to CPI succeeded, attempting metadata creation");
 
-        // Create Metaplex metadata
         CreateMetadataAccountV3CpiBuilder::new(&ctx.accounts.metadata_program)
             .metadata(&ctx.accounts.metadata.to_account_info())
             .mint(&ctx.accounts.mint.to_account_info())
@@ -94,8 +94,6 @@ pub mod prompt_marketplace {
             })
             .is_mutable(true)
             .invoke()?;
-
-        // Log after metadata CPI
         msg!("Metadata creation succeeded");
 
         emit!(PromptCreated {
@@ -109,18 +107,18 @@ pub mod prompt_marketplace {
 
     pub fn list_prompt(ctx: Context<ListPrompt>, price: u64) -> Result<()> {
         let listing = &mut ctx.accounts.listing;
+        require!(price > 0, ErrorCode::InvalidPrice);
+
         listing.mint = ctx.accounts.mint.key();
         listing.seller = ctx.accounts.seller.key();
         listing.price = price;
         listing.is_active = true;
         listing.bump = ctx.bumps.listing;
 
-        require!(price > 0, ErrorCode::InvalidPrice);
+        msg!("Listing prompt: mint={}, seller={}, price={}, bump={}",
+            listing.mint, listing.seller, listing.price, listing.bump);
 
-        // Log before token transfer
         msg!("Attempting token transfer from {} to {}", ctx.accounts.seller_token.key(), ctx.accounts.escrow_token.key());
-
-        // Transfer NFT to escrow
         anchor_spl::token::transfer(
             CpiContext::new(
                 ctx.accounts.token_program.to_account_info(),
@@ -132,13 +130,11 @@ pub mod prompt_marketplace {
             ),
             1,
         )?;
-
-        // Log after token transfer
         msg!("Token transfer succeeded");
 
         emit!(PromptListed {
-            mint: listing.mint,
-            seller: listing.seller,
+            mint: ctx.accounts.mint.key(),
+            seller: ctx.accounts.seller.key(),
             price,
         });
 
@@ -150,16 +146,41 @@ pub mod prompt_marketplace {
         let prompt = &ctx.accounts.prompt;
         let config = &ctx.accounts.config;
 
+        // Enhanced debug logging
+        msg!("Instruction: BuyPrompt");
+        msg!("Buyer pubkey: {}", ctx.accounts.buyer.key());
+        msg!("Buyer is_signer: {}", ctx.accounts.buyer.is_signer);
+        msg!("Buyer_token pubkey: {}", ctx.accounts.buyer_token.key());
+        msg!("Buyer_token owner: {}", ctx.accounts.buyer_token.owner);
+        msg!("Buyer_token mint: {}", ctx.accounts.buyer_token.mint);
+        msg!("Buyer_token amount: {}", ctx.accounts.buyer_token.amount);
+        msg!("Escrow_token pubkey: {}", ctx.accounts.escrow_token.key());
+        msg!("Escrow_token owner: {}", ctx.accounts.escrow_token.owner);
+        msg!("Escrow_token mint: {}", ctx.accounts.escrow_token.mint);
+        msg!("Escrow_token amount: {}", ctx.accounts.escrow_token.amount);
+        msg!("Expected mint: {}", ctx.accounts.mint.key());
+        msg!("Listing is_active: {}", listing.is_active);
+        msg!("Listing price: {}", listing.price);
+        msg!("Config fee_bps: {}", config.fee_bps);
+        msg!("Prompt royalty_bps: {}", prompt.royalty_bps);
+
         require!(listing.is_active, ErrorCode::NotForSale);
         require!(
             ctx.accounts.buyer.lamports() >= listing.price,
             ErrorCode::InsufficientFunds
         );
 
-        // Calculate fees
         let platform_fee = (listing.price * config.fee_bps as u64) / 10000;
         let royalty = (listing.price * prompt.royalty_bps) / 10000;
-        let seller_amount = listing.price - platform_fee - royalty;
+        let seller_amount = listing.price
+            .checked_sub(platform_fee)
+            .ok_or(ErrorCode::ArithmeticError)?
+            .checked_sub(royalty)
+            .ok_or(ErrorCode::ArithmeticError)?;
+
+        msg!("Platform fee: {}", platform_fee);
+        msg!("Royalty: {}", royalty);
+        msg!("Seller amount: {}", seller_amount);
 
         // Transfer SOL to seller
         anchor_lang::system_program::transfer(
@@ -173,7 +194,7 @@ pub mod prompt_marketplace {
             seller_amount,
         )?;
 
-        // Transfer platform fee to admin
+        // Transfer SOL to admin (platform fee)
         anchor_lang::system_program::transfer(
             CpiContext::new(
                 ctx.accounts.system_program.to_account_info(),
@@ -185,7 +206,7 @@ pub mod prompt_marketplace {
             platform_fee,
         )?;
 
-        // Transfer royalty to creator
+        // Transfer SOL to creator (royalty)
         anchor_lang::system_program::transfer(
             CpiContext::new(
                 ctx.accounts.system_program.to_account_info(),
@@ -197,7 +218,8 @@ pub mod prompt_marketplace {
             royalty,
         )?;
 
-        // Transfer NFT to buyer
+        // Transfer NFT from escrow to buyer
+        msg!("Attempting token transfer from {} to {}", ctx.accounts.escrow_token.key(), ctx.accounts.buyer_token.key());
         anchor_spl::token::transfer(
             CpiContext::new_with_signer(
                 ctx.accounts.token_program.to_account_info(),
@@ -210,8 +232,10 @@ pub mod prompt_marketplace {
             ),
             1,
         )?;
+        msg!("Token transfer succeeded");
 
         listing.is_active = false;
+        msg!("Listing set to inactive");
 
         emit!(PromptSold {
             mint: listing.mint,
@@ -220,6 +244,7 @@ pub mod prompt_marketplace {
             price: listing.price,
         });
 
+        msg!("BuyPrompt completed successfully");
         Ok(())
     }
 
@@ -227,10 +252,8 @@ pub mod prompt_marketplace {
         let listing = &mut ctx.accounts.listing;
         require!(listing.is_active, ErrorCode::NotForSale);
 
-        // Log before token transfer
+        msg!("Delisting prompt: mint={}, seller={}", listing.mint, listing.seller);
         msg!("Attempting token transfer from {} to {}", ctx.accounts.escrow_token.key(), ctx.accounts.seller_token.key());
-
-        // Return NFT to seller
         anchor_spl::token::transfer(
             CpiContext::new_with_signer(
                 ctx.accounts.token_program.to_account_info(),
@@ -243,11 +266,10 @@ pub mod prompt_marketplace {
             ),
             1,
         )?;
-
-        // Log after token transfer
         msg!("Token transfer succeeded");
 
         listing.is_active = false;
+        msg!("Listing set to inactive");
 
         emit!(PromptDelisted {
             mint: listing.mint,
@@ -329,7 +351,7 @@ pub struct CreatePrompt<'info> {
 #[derive(Accounts)]
 pub struct ListPrompt<'info> {
     #[account(
-        init,
+        init_if_needed,
         payer = seller,
         space = 8 + 32 + 32 + 8 + 1 + 1,
         seeds = [b"listing", mint.key().as_ref()],
@@ -388,19 +410,20 @@ pub struct BuyPrompt<'info> {
     pub seller: SystemAccount<'info>,
     #[account(mut)]
     pub admin: SystemAccount<'info>,
+    #[account(mut)]
     pub creator: SystemAccount<'info>,
     #[account(
         init_if_needed,
         payer = buyer,
-        token::mint = mint,
-        token::authority = buyer,
-        token::token_program = token_program
+        associated_token::mint = mint,
+        associated_token::authority = buyer
     )]
     pub buyer_token: Account<'info, TokenAccount>,
     #[account(
         mut,
         token::mint = mint,
-        token::authority = escrow_authority
+        token::authority = escrow_authority,
+        token::token_program = token_program
     )]
     pub escrow_token: Account<'info, TokenAccount>,
     /// CHECK: This is a PDA-derived authority account validated by seeds [b"escrow", mint.key().as_ref()] and bump.
@@ -411,6 +434,7 @@ pub struct BuyPrompt<'info> {
     pub escrow_authority: AccountInfo<'info>,
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
+    pub associated_token_program: Program<'info, AssociatedToken>,
 }
 
 #[derive(Accounts)]
@@ -437,7 +461,8 @@ pub struct DelistPrompt<'info> {
     #[account(
         mut,
         token::mint = mint,
-        token::authority = escrow_authority
+        token::authority = escrow_authority,
+        token::token_program = token_program
     )]
     pub escrow_token: Account<'info, TokenAccount>,
     /// CHECK: This is a PDA-derived authority account validated by seeds [b"escrow", mint.key().as_ref()] and bump.
@@ -473,6 +498,13 @@ pub struct Listing {
     pub price: u64,
     pub is_active: bool,
     pub bump: u8,
+}
+
+impl Listing {
+    pub fn discriminator() -> [u8; 8] {
+        let hash = anchor_lang::solana_program::hash::hash(b"account:Listing");
+        hash.as_ref()[0..8].try_into().unwrap()
+    }
 }
 
 #[event]
@@ -518,4 +550,6 @@ pub enum ErrorCode {
     InsufficientFunds,
     #[msg("Unauthorized")]
     Unauthorized,
+    #[msg("Arithmetic error")]
+    ArithmeticError,
 }

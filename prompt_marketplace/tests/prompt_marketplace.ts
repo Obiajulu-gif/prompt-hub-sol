@@ -152,7 +152,11 @@ describe("Prompt Marketplace", () => {
         }
         await withRetry(() =>
           connection.confirmTransaction(
-            { signature: initTxSig, blockhash: latestBlockhash.blockhash, lastValidBlockHeight: latestBlockhash.lastValidBlockHeight },
+            {
+              signature: initTxSig as string,
+              blockhash: latestBlockhash.blockhash,
+              lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
+            },
             "confirmed"
           )
         );
@@ -245,9 +249,13 @@ describe("Prompt Marketplace", () => {
       }
       await withRetry(() =>
         connection.confirmTransaction(
-          { signature: initTxSig, blockhash: latestBlockhash.blockhash, lastValidBlockHeight: latestBlockhash.lastValidBlockHeight },
-            "confirmed"
-          )
+          {
+            signature: initTxSig as string,
+            blockhash: latestBlockhash.blockhash,
+            lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
+          },
+          "confirmed"
+        )
       );
       console.log("Mint and ATA initialization complete, transaction signature:", initTxSig);
 
@@ -303,7 +311,11 @@ describe("Prompt Marketplace", () => {
       }
       await withRetry(() =>
         connection.confirmTransaction(
-          { signature: createTxSig, blockhash: createBlockhash.blockhash, lastValidBlockHeight: createBlockhash.lastValidBlockHeight },
+          {
+            signature: createTxSig as string,
+            blockhash: createBlockhash.blockhash,
+            lastValidBlockHeight: createBlockhash.lastValidBlockHeight
+          },
           "confirmed"
         )
       );
@@ -468,7 +480,11 @@ describe("Prompt Marketplace", () => {
         }
         await withRetry(() =>
           connection.confirmTransaction(
-            { signature: initEscrowTxSig, blockhash: latestBlockhash.blockhash, lastValidBlockHeight: latestBlockhash.lastValidBlockHeight },
+            {
+              signature: initEscrowTxSig as string,
+              blockhash: latestBlockhash.blockhash,
+              lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
+            },
             "confirmed"
           )
         );
@@ -538,7 +554,11 @@ describe("Prompt Marketplace", () => {
       }
       await withRetry(() =>
         connection.confirmTransaction(
-          { signature: listTxSig, blockhash: latestBlockhash.blockhash, lastValidBlockHeight: latestBlockhash.lastValidBlockHeight },
+          {
+            signature: listTxSig as string,
+            blockhash: latestBlockhash.blockhash,
+            lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
+          },
           "confirmed"
         )
       );
@@ -639,7 +659,11 @@ describe("Prompt Marketplace", () => {
       }
       await withRetry(() =>
         connection.confirmTransaction(
-          { signature: delistTxSig, blockhash: latestBlockhash.blockhash, lastValidBlockHeight: latestBlockhash.lastValidBlockHeight },
+          {
+            signature: delistTxSig as string,
+            blockhash: latestBlockhash.blockhash,
+            lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
+          },
           "confirmed"
         )
       );
@@ -719,10 +743,11 @@ describe("Prompt Marketplace", () => {
 
       // Transfer NFT from admin to seller
       const transferIx = createTransferInstruction(
-        creatorToken, // admin's token account
+        creatorToken,
         sellerToken,
         admin.publicKey,
         1,
+        [],
         TOKEN_PROGRAM_ID
       );
 
@@ -748,7 +773,11 @@ describe("Prompt Marketplace", () => {
       }
       await withRetry(() =>
         connection.confirmTransaction(
-          { signature: transferTxSig, blockhash: latestBlockhash.blockhash, lastValidBlockHeight: latestBlockhash.lastValidBlockHeight },
+          {
+            signature: transferTxSig as string,
+            blockhash: latestBlockhash.blockhash,
+            lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
+          },
           "confirmed"
         )
       );
@@ -843,7 +872,11 @@ describe("Prompt Marketplace", () => {
         }
         await withRetry(() =>
           connection.confirmTransaction(
-            { signature: initEscrowTxSig, blockhash: latestBlockhash.blockhash, lastValidBlockHeight: latestBlockhash.lastValidBlockHeight },
+            {
+              signature: initEscrowTxSig as string,
+              blockhash: latestBlockhash.blockhash,
+              lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
+            },
             "confirmed"
           )
         );
@@ -885,7 +918,11 @@ describe("Prompt Marketplace", () => {
         }
         await withRetry(() =>
           connection.confirmTransaction(
-            { signature: initBuyerAtaTxSig, blockhash: latestBlockhash.blockhash, lastValidBlockHeight: latestBlockhash.lastValidBlockHeight },
+            {
+              signature: initBuyerAtaTxSig as string,
+              blockhash: latestBlockhash.blockhash,
+              lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
+            },
             "confirmed"
           )
         );
@@ -936,7 +973,7 @@ describe("Prompt Marketplace", () => {
         ],
         programId,
         data: listInstructionData,
-      });
+    }); 
 
       const listTx = new Transaction().add(
         ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 200000 }),
@@ -959,7 +996,11 @@ describe("Prompt Marketplace", () => {
       }
       await withRetry(() =>
         connection.confirmTransaction(
-          { signature: listTxSig, blockhash: latestBlockhash.blockhash, lastValidBlockHeight: latestBlockhash.lastValidBlockHeight },
+          {
+            signature: listTxSig as string,
+            blockhash: latestBlockhash.blockhash,
+            lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
+          },
           "confirmed"
         )
       );
@@ -1066,7 +1107,11 @@ describe("Prompt Marketplace", () => {
       }
       await withRetry(() =>
         connection.confirmTransaction(
-          { signature: buyTxSig, blockhash: latestBlockhash.blockhash, lastValidBlockHeight: latestBlockhash.lastValidBlockHeight },
+          {
+            signature: buyTxSig as string,
+            blockhash: latestBlockhash.blockhash,
+            lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
+          },
           "confirmed"
         )
       );
@@ -1194,7 +1239,7 @@ describe("Prompt Marketplace", () => {
         ],
         programId,
         data: relistInstructionData,
-      });
+    });
 
       const relistTx = new Transaction().add(
         ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 200000 }),
@@ -1217,7 +1262,11 @@ describe("Prompt Marketplace", () => {
       }
       await withRetry(() =>
         connection.confirmTransaction(
-          { signature: relistTxSig, blockhash: latestBlockhash.blockhash, lastValidBlockHeight: latestBlockhash.lastValidBlockHeight },
+          {
+            signature: relistTxSig as string,
+            blockhash: latestBlockhash.blockhash,
+            lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
+          },
           "confirmed"
         )
       );
@@ -1352,7 +1401,11 @@ describe("Prompt Marketplace", () => {
         }
         await withRetry(() =>
           connection.confirmTransaction(
-            { signature: initBuyerAtaTxSig, blockhash: latestBlockhash.blockhash, lastValidBlockHeight: latestBlockhash.lastValidBlockHeight },
+            {
+              signature: initBuyerAtaTxSig as string,
+              blockhash: latestBlockhash.blockhash,
+              lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
+            },
             "confirmed"
           )
         );
@@ -1387,7 +1440,7 @@ describe("Prompt Marketplace", () => {
         ],
         programId,
         data: delistInstructionData,
-      });
+    });
 
       const delistTx = new Transaction().add(
         ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 200000 }),
@@ -1410,7 +1463,11 @@ describe("Prompt Marketplace", () => {
       }
       await withRetry(() =>
         connection.confirmTransaction(
-          { signature: delistTxSig, blockhash: latestBlockhash.blockhash, lastValidBlockHeight: latestBlockhash.lastValidBlockHeight },
+          {
+            signature: delistTxSig as string,
+            blockhash: latestBlockhash.blockhash,
+            lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
+          },
           "confirmed"
         )
       );
@@ -1426,7 +1483,14 @@ describe("Prompt Marketplace", () => {
       assert.equal(buyerTokenState.amount.toString(), "1", "Buyer token amount should be 1 after delisting");
 
       // Transfer the prompt NFT from buyer back to seller
-      const transferBackIx = createTransferInstruction(buyerToken, sellerToken, buyer.publicKey, 1, TOKEN_PROGRAM_ID);
+      const transferBackIx = createTransferInstruction(
+        buyerToken,
+        sellerToken,
+        buyer.publicKey,
+        1,
+        [],
+        TOKEN_PROGRAM_ID
+      );
 
       const transferBackTx = new Transaction().add(
         ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 200000 }),
@@ -1449,7 +1513,11 @@ describe("Prompt Marketplace", () => {
       }
       await withRetry(() =>
         connection.confirmTransaction(
-          { signature: transferBackTxSig, blockhash: latestBlockhash.blockhash, lastValidBlockHeight: latestBlockhash.lastValidBlockHeight },
+          {
+            signature: transferBackTxSig as string,
+            blockhash: latestBlockhash.blockhash,
+            lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
+          },
           "confirmed"
         )
       );
@@ -1482,7 +1550,7 @@ describe("Prompt Marketplace", () => {
         ],
         programId,
         data: listInstructionData,
-      });
+    });
 
       const listTx = new Transaction().add(
         ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 200000 }),
@@ -1505,7 +1573,11 @@ describe("Prompt Marketplace", () => {
       }
       await withRetry(() =>
         connection.confirmTransaction(
-          { signature: listTxSig, blockhash: latestBlockhash.blockhash, lastValidBlockHeight: latestBlockhash.lastValidBlockHeight },
+          {
+            signature: listTxSig as string,
+            blockhash: latestBlockhash.blockhash,
+            lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
+          },
           "confirmed"
         )
       );
@@ -1545,7 +1617,11 @@ describe("Prompt Marketplace", () => {
         }
         await withRetry(() =>
           connection.confirmTransaction(
-            { signature: reduceTxSig, blockhash: latestBlockhash.blockhash, lastValidBlockHeight: latestBlockhash.lastValidBlockHeight },
+            {
+              signature: reduceTxSig as string,
+              blockhash: latestBlockhash.blockhash,
+              lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
+            },
             "confirmed"
           )
         );
@@ -1588,7 +1664,7 @@ describe("Prompt Marketplace", () => {
         ],
         programId,
         data: buyInstructionData,
-      });
+    });
 
       const buyTx = new Transaction().add(
         ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 200000 }),
@@ -1616,7 +1692,11 @@ describe("Prompt Marketplace", () => {
         }
         await withRetry(() =>
           connection.confirmTransaction(
-            { signature: buyTxSig, blockhash: latestBlockhash.blockhash, lastValidBlockHeight: latestBlockhash.lastValidBlockHeight },
+            {
+              signature: buyTxSig as string,
+              blockhash: latestBlockhash.blockhash,
+              lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
+            },
             "confirmed"
           )
         );

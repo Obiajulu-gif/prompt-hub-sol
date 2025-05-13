@@ -6,7 +6,7 @@
     "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check",
     "test": "ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts",
     "ts-mocha": "ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts",
-    "build-tests": "tsc -p tsconfig.tests.json"
+    "build": "tsc -p tsconfig.tests.json"
   },
   "devDependencies": {
     "@coral-xyz/anchor": "^0.31.1",
